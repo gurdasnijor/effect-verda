@@ -871,17 +871,17 @@ export declare const HealthcheckSettings: Schema.StructWithRest<Schema.Struct<{
     readonly port: Schema.Number;
     readonly path: Schema.String;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
-export type EntrypointOverridesSettings = {
+export type EntrypointOverridesSettingsPublicApiResponse = {
     readonly "enabled": boolean;
-    readonly "entrypoint"?: ReadonlyArray<string>;
-    readonly "cmd"?: ReadonlyArray<string>;
+    readonly "entrypoint"?: ReadonlyArray<string> | null;
+    readonly "cmd"?: ReadonlyArray<string> | null;
 } & {
     readonly [x: string]: Schema.Json;
 };
-export declare const EntrypointOverridesSettings: Schema.StructWithRest<Schema.Struct<{
+export declare const EntrypointOverridesSettingsPublicApiResponse: Schema.StructWithRest<Schema.Struct<{
     readonly enabled: Schema.Boolean;
-    readonly entrypoint: Schema.optionalKey<Schema.$Array<Schema.String>>;
-    readonly cmd: Schema.optionalKey<Schema.$Array<Schema.String>>;
+    readonly entrypoint: Schema.optionalKey<Schema.Union<readonly [Schema.$Array<Schema.String>, Schema.Null]>>;
+    readonly cmd: Schema.optionalKey<Schema.Union<readonly [Schema.$Array<Schema.String>, Schema.Null]>>;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
 export type EnvVarPublicApi = {
     readonly "name": string;
@@ -948,6 +948,18 @@ export type ContainerRegistryCredentials = {
 };
 export declare const ContainerRegistryCredentials: Schema.StructWithRest<Schema.Struct<{
     readonly name: Schema.String;
+}>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
+export type EntrypointOverridesSettings = {
+    readonly "enabled": boolean;
+    readonly "entrypoint"?: ReadonlyArray<string>;
+    readonly "cmd"?: ReadonlyArray<string>;
+} & {
+    readonly [x: string]: Schema.Json;
+};
+export declare const EntrypointOverridesSettings: Schema.StructWithRest<Schema.Struct<{
+    readonly enabled: Schema.Boolean;
+    readonly entrypoint: Schema.optionalKey<Schema.$Array<Schema.String>>;
+    readonly cmd: Schema.optionalKey<Schema.$Array<Schema.String>>;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
 export type ScalingPolicy = {
     readonly "delay_seconds": number;
@@ -1901,7 +1913,7 @@ export type ContainerPublicApiResponseDto = {
     readonly "should_use_cached_image"?: boolean;
     readonly "exposed_port": number;
     readonly "healthcheck"?: HealthcheckSettings;
-    readonly "entrypoint_overrides"?: EntrypointOverridesSettings;
+    readonly "entrypoint_overrides"?: EntrypointOverridesSettingsPublicApiResponse;
     readonly "env"?: ReadonlyArray<EnvVarPublicApi>;
     readonly "volume_mounts"?: ReadonlyArray<ScratchVolumeMountDto | SecretVolumeMountDto | SharedVolumeMountDto | MemoryVolumeMountDto>;
     readonly "image": {
@@ -1915,7 +1927,7 @@ export declare const ContainerPublicApiResponseDto: Schema.StructWithRest<Schema
     readonly should_use_cached_image: Schema.optionalKey<Schema.Boolean>;
     readonly exposed_port: Schema.Number;
     readonly healthcheck: Schema.optionalKey<Schema.suspend<Schema.Codec<HealthcheckSettings, HealthcheckSettings, never, never>>>;
-    readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettings, EntrypointOverridesSettings, never, never>>>;
+    readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettingsPublicApiResponse, EntrypointOverridesSettingsPublicApiResponse, never, never>>>;
     readonly env: Schema.optionalKey<Schema.$Array<Schema.StructWithRest<Schema.Struct<{
         readonly name: Schema.String;
         readonly value_or_reference_to_secret: Schema.String;
@@ -1924,6 +1936,16 @@ export declare const ContainerPublicApiResponseDto: Schema.StructWithRest<Schema
     readonly volume_mounts: Schema.optionalKey<Schema.$Array<Schema.Union<readonly [Schema.suspend<Schema.Codec<ScratchVolumeMountDto, ScratchVolumeMountDto, never, never>>, Schema.suspend<Schema.Codec<SecretVolumeMountDto, SecretVolumeMountDto, never, never>>, Schema.suspend<Schema.Codec<SharedVolumeMountDto, SharedVolumeMountDto, never, never>>, Schema.suspend<Schema.Codec<MemoryVolumeMountDto, MemoryVolumeMountDto, never, never>>]>>>;
     readonly image: Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>;
     readonly name: Schema.String;
+}>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
+export type ContainerRegistrySettingsPublicApiDto = {
+    readonly "is_private": boolean;
+    readonly "credentials": ContainerRegistryCredentials;
+} & {
+    readonly [x: string]: Schema.Json;
+};
+export declare const ContainerRegistrySettingsPublicApiDto: Schema.StructWithRest<Schema.Struct<{
+    readonly is_private: Schema.Boolean;
+    readonly credentials: Schema.suspend<Schema.Codec<ContainerRegistryCredentials, ContainerRegistryCredentials, never, never>>;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
 export type ContainerPublicApiDto = {
     readonly "image": string;
@@ -1948,16 +1970,6 @@ export declare const ContainerPublicApiDto: Schema.StructWithRest<Schema.Struct<
         readonly type: Schema.Literals<readonly ["plain", "secret"]>;
     }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>>>;
     readonly volume_mounts: Schema.optionalKey<Schema.$Array<Schema.Union<readonly [Schema.suspend<Schema.Codec<ScratchVolumeMountDto, ScratchVolumeMountDto, never, never>>, Schema.suspend<Schema.Codec<SecretVolumeMountDto, SecretVolumeMountDto, never, never>>, Schema.suspend<Schema.Codec<SharedVolumeMountDto, SharedVolumeMountDto, never, never>>, Schema.suspend<Schema.Codec<MemoryVolumeMountDto, MemoryVolumeMountDto, never, never>>]>>>;
-}>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
-export type ContainerRegistrySettingsPublicApiDto = {
-    readonly "is_private": boolean;
-    readonly "credentials": ContainerRegistryCredentials;
-} & {
-    readonly [x: string]: Schema.Json;
-};
-export declare const ContainerRegistrySettingsPublicApiDto: Schema.StructWithRest<Schema.Struct<{
-    readonly is_private: Schema.Boolean;
-    readonly credentials: Schema.suspend<Schema.Codec<ContainerRegistryCredentials, ContainerRegistryCredentials, never, never>>;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
 export type ScalingTriggers = {
     readonly "queue_load": QueueLoadScalingTrigger;
@@ -2290,7 +2302,7 @@ export declare const DeploymentPublicApiResponseDto: Schema.StructWithRest<Schem
         readonly should_use_cached_image: Schema.optionalKey<Schema.Boolean>;
         readonly exposed_port: Schema.Number;
         readonly healthcheck: Schema.optionalKey<Schema.suspend<Schema.Codec<HealthcheckSettings, HealthcheckSettings, never, never>>>;
-        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettings, EntrypointOverridesSettings, never, never>>>;
+        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettingsPublicApiResponse, EntrypointOverridesSettingsPublicApiResponse, never, never>>>;
         readonly env: Schema.optionalKey<Schema.$Array<Schema.StructWithRest<Schema.Struct<{
             readonly name: Schema.String;
             readonly value_or_reference_to_secret: Schema.String;
@@ -3861,7 +3873,7 @@ export declare const PublicApiControllerGetDeploymentsList200: Schema.$Array<Sch
         readonly should_use_cached_image: Schema.optionalKey<Schema.Boolean>;
         readonly exposed_port: Schema.Number;
         readonly healthcheck: Schema.optionalKey<Schema.suspend<Schema.Codec<HealthcheckSettings, HealthcheckSettings, never, never>>>;
-        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettings, EntrypointOverridesSettings, never, never>>>;
+        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettingsPublicApiResponse, EntrypointOverridesSettingsPublicApiResponse, never, never>>>;
         readonly env: Schema.optionalKey<Schema.$Array<Schema.StructWithRest<Schema.Struct<{
             readonly name: Schema.String;
             readonly value_or_reference_to_secret: Schema.String;
@@ -3906,7 +3918,7 @@ export declare const PublicApiControllerCreateNewDeployment201: Schema.StructWit
         readonly should_use_cached_image: Schema.optionalKey<Schema.Boolean>;
         readonly exposed_port: Schema.Number;
         readonly healthcheck: Schema.optionalKey<Schema.suspend<Schema.Codec<HealthcheckSettings, HealthcheckSettings, never, never>>>;
-        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettings, EntrypointOverridesSettings, never, never>>>;
+        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettingsPublicApiResponse, EntrypointOverridesSettingsPublicApiResponse, never, never>>>;
         readonly env: Schema.optionalKey<Schema.$Array<Schema.StructWithRest<Schema.Struct<{
             readonly name: Schema.String;
             readonly value_or_reference_to_secret: Schema.String;
@@ -3929,7 +3941,7 @@ export declare const PublicApiControllerGetDeploymentByName200: Schema.StructWit
         readonly should_use_cached_image: Schema.optionalKey<Schema.Boolean>;
         readonly exposed_port: Schema.Number;
         readonly healthcheck: Schema.optionalKey<Schema.suspend<Schema.Codec<HealthcheckSettings, HealthcheckSettings, never, never>>>;
-        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettings, EntrypointOverridesSettings, never, never>>>;
+        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettingsPublicApiResponse, EntrypointOverridesSettingsPublicApiResponse, never, never>>>;
         readonly env: Schema.optionalKey<Schema.$Array<Schema.StructWithRest<Schema.Struct<{
             readonly name: Schema.String;
             readonly value_or_reference_to_secret: Schema.String;
@@ -3979,7 +3991,7 @@ export declare const PublicApiControllerUpdateDeploymentByName200: Schema.Struct
         readonly should_use_cached_image: Schema.optionalKey<Schema.Boolean>;
         readonly exposed_port: Schema.Number;
         readonly healthcheck: Schema.optionalKey<Schema.suspend<Schema.Codec<HealthcheckSettings, HealthcheckSettings, never, never>>>;
-        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettings, EntrypointOverridesSettings, never, never>>>;
+        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettingsPublicApiResponse, EntrypointOverridesSettingsPublicApiResponse, never, never>>>;
         readonly env: Schema.optionalKey<Schema.$Array<Schema.StructWithRest<Schema.Struct<{
             readonly name: Schema.String;
             readonly value_or_reference_to_secret: Schema.String;
@@ -4237,7 +4249,7 @@ export declare const ContainerDeploymentTemplatesPublicApiControllerDeployTempla
         readonly should_use_cached_image: Schema.optionalKey<Schema.Boolean>;
         readonly exposed_port: Schema.Number;
         readonly healthcheck: Schema.optionalKey<Schema.suspend<Schema.Codec<HealthcheckSettings, HealthcheckSettings, never, never>>>;
-        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettings, EntrypointOverridesSettings, never, never>>>;
+        readonly entrypoint_overrides: Schema.optionalKey<Schema.suspend<Schema.Codec<EntrypointOverridesSettingsPublicApiResponse, EntrypointOverridesSettingsPublicApiResponse, never, never>>>;
         readonly env: Schema.optionalKey<Schema.$Array<Schema.StructWithRest<Schema.Struct<{
             readonly name: Schema.String;
             readonly value_or_reference_to_secret: Schema.String;
