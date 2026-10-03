@@ -14,7 +14,7 @@
   "scripts": {
     "generate": "openapigen --spec spec/verda.openapi.json --patch spec/patch.json --name Verda --format httpclient > src/generated.ts",
     "build": "tsc -p tsconfig.json",
-    "check": "pnpm build"
+    "check": "pnpm build && node --test test/*.test.mjs"
   },
   "peerDependencies": {
     "effect": "^4.0.0-rc.115",
