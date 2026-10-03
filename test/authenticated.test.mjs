@@ -34,3 +34,38 @@ test("renews credentials through the generated OAuth operation and reuses the to
     { path: "/v1/container-deployments", authorization: "Bearer test-token" },
   ]);
 });
+
+test("decodes null entrypoint overrides returned by a deployment GET", async () => {
+  const httpClient = HttpClient.make((request, url) => Effect.sync(() => HttpClientResponse.fromWeb(
+    request,
+    Response.json(url.pathname === "/v1/oauth2/token"
+      ? {
+        access_token: "test-token",
+        token_type: "Bearer",
+        expires_in: 3600,
+        refresh_token: "test-refresh",
+        scope: "cloud-api-v1",
+      }
+      : {
+        name: "model",
+        containers: [{
+          name: "model-0",
+          image: { image: "vccr.io/model:sha-example" },
+          exposed_port: 5000,
+          entrypoint_overrides: { enabled: false, entrypoint: null, cmd: null },
+        }],
+        endpoint_base_url: "https://model.example",
+        created_at: "2026-10-02T00:00:00Z",
+        compute: { name: "B300", size: 1 },
+        container_registry_settings: { is_private: true, credentials: { name: "registry" } },
+        is_spot: false,
+      }),
+  )));
+  const client = await Effect.runPromise(makeAuthenticated(httpClient, {
+    clientId: "test-id",
+    clientSecret: "test-secret",
+  }));
+
+  const deployment = await Effect.runPromise(client.PublicApiControllerGetDeploymentByName("model", undefined));
+  assert.equal(deployment.containers[0].entrypoint_overrides?.entrypoint, null);
+});

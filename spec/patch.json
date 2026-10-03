@@ -49,5 +49,23 @@
     "value": [
       "queue_load"
     ]
+  },
+  {
+    "op": "add",
+    "path": "/components/schemas/EntrypointOverridesSettingsPublicApiResponse",
+    "value": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "entrypoint": { "type": ["array", "null"], "items": { "type": "string" } },
+        "cmd": { "type": ["array", "null"], "items": { "type": "string" } }
+      },
+      "required": ["enabled"]
+    }
+  },
+  {
+    "op": "replace",
+    "path": "/components/schemas/ContainerPublicApiResponseDto/properties/entrypoint_overrides/allOf/0/$ref",
+    "value": "#/components/schemas/EntrypointOverridesSettingsPublicApiResponse"
   }
 ]
