@@ -1,0 +1,53 @@
+[
+  {
+    "op": "replace",
+    "path": "/paths/~1v1~1journal/get/parameters/0/schema/default",
+    "value": 1
+  },
+  {
+    "op": "replace",
+    "path": "/paths/~1v1~1journal/get/parameters/1/schema/default",
+    "value": 10
+  },
+  {
+    "op": "replace",
+    "path": "/paths/~1v1~1journal~1compute~1{computeId}/get/parameters/1/schema/default",
+    "value": 1
+  },
+  {
+    "op": "replace",
+    "path": "/paths/~1v1~1journal~1compute~1{computeId}/get/parameters/2/schema/default",
+    "value": 10
+  },
+  {
+    "op": "replace",
+    "path": "/paths/~1v1~1journal~1volume~1{volumeId}/get/parameters/1/schema/default",
+    "value": 1
+  },
+  {
+    "op": "replace",
+    "path": "/paths/~1v1~1journal~1volume~1{volumeId}/get/parameters/2/schema/default",
+    "value": 10
+  },
+  {
+    "op": "replace",
+    "path": "/paths/~1v1~1scripts/get/parameters/0/schema/default",
+    "value": 1
+  },
+  {
+    "op": "replace",
+    "path": "/paths/~1v1~1scripts/get/parameters/1/schema/default",
+    "value": 10
+  },
+  {
+    "op": "remove",
+    "path": "/paths/~1v1~1oauth2~1token/post/parameters"
+  },
+  {
+    "op": "replace",
+    "path": "/components/schemas/ScalingTriggers/required",
+    "value": [
+      "queue_load"
+    ]
+  }
+]

@@ -1,0 +1,2114 @@
+import * as Data from "effect/Data"
+import * as Effect from "effect/Effect"
+import type { SchemaError } from "effect/Schema"
+import * as Schema from "effect/Schema"
+import type * as HttpClient from "effect/unstable/http/HttpClient"
+import * as HttpClientError from "effect/unstable/http/HttpClientError"
+import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
+// non-recursive definitions
+export type GetAccessTokenDto = { readonly "grant_type": "client_credentials" | "refresh_token", readonly "client_id": string, readonly "client_secret": string } & { readonly [x: string]: Schema.Json }
+export const GetAccessTokenDto = Schema.StructWithRest(Schema.Struct({ "grant_type": Schema.Literals(["client_credentials", "refresh_token"]).annotate({ "examples": ["client_credentials"] }), "client_id": Schema.String.annotate({ "examples": ["6a51jsgnISg6JOyE7wYZh"] }), "client_secret": Schema.String }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetAccessTokenDto" })
+export type RefreshAccessTokenPublicApiDto = { readonly "grant_type": "client_credentials" | "refresh_token", readonly "refresh_token": string } & { readonly [x: string]: Schema.Json }
+export const RefreshAccessTokenPublicApiDto = Schema.StructWithRest(Schema.Struct({ "grant_type": Schema.Literals(["client_credentials", "refresh_token"]).annotate({ "examples": ["refresh_token"] }), "refresh_token": Schema.String }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "RefreshAccessTokenPublicApiDto" })
+export type GetAccessTokenResponseDto = { readonly "access_token": string, readonly "token_type": string, readonly "expires_in": number, readonly "refresh_token": string, readonly "scope": string } & { readonly [x: string]: Schema.Json }
+export const GetAccessTokenResponseDto = Schema.StructWithRest(Schema.Struct({ "access_token": Schema.String.annotate({ "description": "Access token value" }), "token_type": Schema.String.annotate({ "description": "Token type", "examples": ["Bearer"] }), "expires_in": Schema.Number.annotate({ "description": "Token expiration time in seconds", "examples": [3600] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "refresh_token": Schema.String.annotate({ "description": "Refresh token value" }), "scope": Schema.String.annotate({ "description": "Access scope", "examples": ["cloud-api-v1"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetAccessTokenResponseDto" })
+export type PublicApiErrorResponseDto = { readonly "code": "invalid_request" | "unauthorized_request" | "insufficient_funds" | "forbidden_action" | "not_found" | "conflict" | "server_error" | "service_unavailable", readonly "message": string } & { readonly [x: string]: Schema.Json }
+export const PublicApiErrorResponseDto = Schema.StructWithRest(Schema.Struct({ "code": Schema.Literals(["invalid_request", "unauthorized_request", "insufficient_funds", "forbidden_action", "not_found", "conflict", "server_error", "service_unavailable"]).annotate({ "examples": ["invalid_request"] }), "message": Schema.String.annotate({ "description": "Error message" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PublicApiErrorResponseDto" })
+export type BalanceResponseDto = { readonly "amount": number, readonly "currency": "usd" | "eur" } & { readonly [x: string]: Schema.Json }
+export const BalanceResponseDto = Schema.StructWithRest(Schema.Struct({ "amount": Schema.Number.annotate({ "description": "Project balance", "examples": [1000] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "currency": Schema.Literals(["usd", "eur"]).annotate({ "description": "Currency type", "default": "usd", "examples": ["usd"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "BalanceResponseDto" })
+export type Os = { readonly "id": string, readonly "image_type": string, readonly "name": string, readonly "is_default": boolean, readonly "details": ReadonlyArray<string>, readonly "category": string, readonly "is_cluster": boolean } & { readonly [x: string]: Schema.Json }
+export const Os = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Image id", "examples": ["74a88795-5923-43aa-9afb-5697d4d62461"] }), "image_type": Schema.String.annotate({ "description": "Image type", "examples": ["ubuntu-24.04"] }), "name": Schema.String.annotate({ "description": "Image name", "examples": ["Ubuntu 24.04"] }), "is_default": Schema.Boolean.annotate({ "description": "Is default image", "examples": [false] }), "details": Schema.Array(Schema.String).annotate({ "description": "Image details", "examples": [["Ubuntu 24.04", "Minimal Image"]] }), "category": Schema.String.annotate({ "description": "Image category", "examples": ["ubuntu"] }), "is_cluster": Schema.Boolean.annotate({ "description": "Is cluster", "examples": [false] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "Os" })
+export type AuditLogResponseDto = { readonly "specversion": string, readonly "id": string, readonly "source": string, readonly "type": string, readonly "subject": string, readonly "time": string, readonly "data": { readonly [x: string]: Schema.Json } } & { readonly [x: string]: Schema.Json }
+export const AuditLogResponseDto = Schema.StructWithRest(Schema.Struct({ "specversion": Schema.String.annotate({ "description": "The version of the CloudEvents specification that the event uses.", "examples": ["1.0"] }), "id": Schema.String.annotate({ "examples": ["log_033FNaNcc0AtphhH71DLBW"] }), "source": Schema.String.annotate({ "examples": ["https://api.verda.com/project/d6e7f8a9-b0c1-2345-defa-456789012345"] }), "type": Schema.String.annotate({ "description": "The type of event that occurred, as `com.verda.api.<producer>.<object_type>.<action>.v1`.", "examples": ["com.verda.api.cloud.compute.create.v1"] }), "subject": Schema.String.annotate({ "description": "This identifies the subject of the event in the context of the event producer. Typically it is ID of the object that the event is related to.", "examples": ["7bdb4161-c7d2-478c-9850-05719adc8381"] }), "time": Schema.String.annotate({ "description": "The time the event occurred.", "examples": ["2026-03-17T14:15:52.872Z"] }), "data": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "The data of the event, varies for different object types. For the subject of the event, the corresponding object is embedded; other related objects are referenced by ID.", "examples": [{ "location_code": "FIN-01", "request_origin": "console-11.17.0", "actor_id": "5bbb59cb-fced-44a4-85c6-5005e7480a8f", "compute": { "id": "7bdb4161-c7d2-478c-9850-05719adc8381", "hostname": "tiny-tree-unfolds-fin-01", "instance_type": "CPU.4V.16G", "is_cluster": false, "ip": "1.1.1.1", "os_volume_id": "a6e77869-5012-42c0-b98e-792b4ba2cad9", "location_code": "FIN-01" } }] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "AuditLogResponseDto" })
+export type DownloadAuditLogParamsDto = { readonly "action"?: "other" | "create" | "start" | "start_complete" | "shutdown_complete" | "shutdown" | "delete" | "delete_complete" | "attach" | "attach_complete" | "detach" | "detach_complete" | "clone" | "resize" | "rename" | "transfer" | "trash" | "trash_complete" | "restore" | "cancel" | "provisioning" | "running" | "configure_spot" | "authenticate" | "expire" | "accept" | "update_role" | "revoke" | "login" | "logout" | "login_failed" | "auth_mfa_enable" | "auth_mfa_disable" | "auth_mfa_challenge" | "auth_mfa_verify" | "password_reset" | "complete" | "redeem" | "suspend" | "unsuspend" | "approve" | "decline" | "update" | "rotate_secret" | "disable" | "enable", readonly "object_type"?: "compute" | "volume" | "ssh_key" | "invite" | "user" | "member" | "cloud_api_credential" | "object_storage_bucket" | "object_storage_key_pair" | "custom_image" | "startup_script" | "topup" | "coupon" | "bank_transfer" | "bank_transfer_account" | "balance" | "other" | "object_storage" | "quota_request" | "webhook" | "auto_top_up", readonly "start_date"?: string, readonly "end_date"?: string } & { readonly [x: string]: Schema.Json }
+export const DownloadAuditLogParamsDto = Schema.StructWithRest(Schema.Struct({ "action": Schema.optionalKey(Schema.Literals(["other", "create", "start", "start_complete", "shutdown_complete", "shutdown", "delete", "delete_complete", "attach", "attach_complete", "detach", "detach_complete", "clone", "resize", "rename", "transfer", "trash", "trash_complete", "restore", "cancel", "provisioning", "running", "configure_spot", "authenticate", "expire", "accept", "update_role", "revoke", "login", "logout", "login_failed", "auth_mfa_enable", "auth_mfa_disable", "auth_mfa_challenge", "auth_mfa_verify", "password_reset", "complete", "redeem", "suspend", "unsuspend", "approve", "decline", "update", "rotate_secret", "disable", "enable"]).annotate({ "description": "Filter by action type" })), "object_type": Schema.optionalKey(Schema.Literals(["compute", "volume", "ssh_key", "invite", "user", "member", "cloud_api_credential", "object_storage_bucket", "object_storage_key_pair", "custom_image", "startup_script", "topup", "coupon", "bank_transfer", "bank_transfer_account", "balance", "other", "object_storage", "quota_request", "webhook", "auto_top_up"]).annotate({ "description": "Filter by object type" })), "start_date": Schema.optionalKey(Schema.String.annotate({ "description": "Return events created at or after this timestamp. Cannot be earlier than 90 days ago. Default is 90 days ago.", "examples": ["2026-01-01T00:00:00.000Z"] })), "end_date": Schema.optionalKey(Schema.String.annotate({ "description": "Return events created at or before this timestamp. Cannot be before the start date." })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DownloadAuditLogParamsDto" })
+export type DownloadAuditLogResponseDto = { readonly "url": string, readonly "expires_at": string } & { readonly [x: string]: Schema.Json }
+export const DownloadAuditLogResponseDto = Schema.StructWithRest(Schema.Struct({ "url": Schema.String.annotate({ "description": "Pre-signed URL to download the exported audit log JSON file. Short-lived; request a new export once it expires.", "examples": ["https://object.storage.com/project-id/audit-log-20260317-141552-uuid.json?X-Amz-Signature=..."] }), "expires_at": Schema.String.annotate({ "description": "ISO timestamp after which the download URL expires.", "examples": ["2026-03-17T14:30:52.872Z"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DownloadAuditLogResponseDto" })
+export type ActivityVolumeDto = { readonly "id": string, readonly "name": string, readonly "created_at": string, readonly "gb": number, readonly "is_shared_fs": boolean, readonly "template_type": "HDD" | "NVMe" | "HDD_Shared" | "NVMe_Shared" | "NVMe_Local_Storage" | "NVMe_Shared_Cluster" | "NVMe_OS_Cluster", readonly "location_code": string } & { readonly [x: string]: Schema.Json }
+export const ActivityVolumeDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "examples": ["81153282-2d53-481e-b401-bd4191bc5ebc"] }), "name": Schema.String.annotate({ "examples": ["volume-1"] }), "created_at": Schema.String.annotate({ "examples": ["2026-03-17T14:15:52.872Z"] }), "gb": Schema.Number.annotate({ "examples": [100] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "is_shared_fs": Schema.Boolean.annotate({ "examples": [false] }), "template_type": Schema.Literals(["HDD", "NVMe", "HDD_Shared", "NVMe_Shared", "NVMe_Local_Storage", "NVMe_Shared_Cluster", "NVMe_OS_Cluster"]).annotate({ "examples": ["NVMe"] }), "location_code": Schema.String.annotate({ "examples": ["FIN-01"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ActivityVolumeDto" })
+export type ActivityComputeDto = { readonly "id": string, readonly "hostname": string, readonly "compute_type": string, readonly "is_cluster": boolean, readonly "ip"?: string, readonly "os_volume_id"?: string, readonly "location_code"?: string } & { readonly [x: string]: Schema.Json }
+export const ActivityComputeDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "examples": ["ba8916d3-e0cb-4a8f-ae1c-cfad6b3494cb"] }), "hostname": Schema.String.annotate({ "examples": ["example-fin-01"] }), "compute_type": Schema.String.annotate({ "examples": ["4A100.88V"] }), "is_cluster": Schema.Boolean.annotate({ "examples": [false] }), "ip": Schema.optionalKey(Schema.String.annotate({ "examples": ["1.2.3.4"] })), "os_volume_id": Schema.optionalKey(Schema.String.annotate({ "examples": ["49648cb7-c2a6-412a-a606-d23773dc89ae"] })), "location_code": Schema.optionalKey(Schema.String.annotate({ "examples": ["FIN-01"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ActivityComputeDto" })
+export type TagResponseDto = { readonly "id": string, readonly "key": string, readonly "value": string } & { readonly [x: string]: Schema.Json }
+export const TagResponseDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "examples": ["tag_0aB1cD2eF3gH4iJ5kL6mN7"] }), "key": Schema.String.annotate({ "examples": ["environment"] }), "value": Schema.String.annotate({ "description": "Empty string for a freeform tag", "examples": ["production"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "TagResponseDto" })
+export type PerformVolumeActionPublicDto = { readonly "action": "attach" | "detach" | "delete" | "rename" | "resize" | "restore" | "clone" | "cancel" | "create" | "export" | "transfer", readonly "id": string | ReadonlyArray<string>, readonly "size"?: number, readonly "instance_id"?: string, readonly "instance_ids"?: ReadonlyArray<string>, readonly "name"?: string, readonly "type"?: string, readonly "is_permanent"?: boolean, readonly "location_code"?: string } & { readonly [x: string]: Schema.Json }
+export const PerformVolumeActionPublicDto = Schema.StructWithRest(Schema.Struct({ "action": Schema.Literals(["attach", "detach", "delete", "rename", "resize", "restore", "clone", "cancel", "create", "export", "transfer"]).annotate({ "description": "Action to perform on the volume(s)\n\nThe `clone` action returns its destination volume ID: `{\"id\":\"...\"}`. Send a `cancel` action with that same ID to interrupt a cross-datacenter clone.", "examples": ["detach"] }), "id": Schema.Union([Schema.String.annotate({ "format": "uuid" }), Schema.Array(Schema.String.annotate({ "format": "uuid" }))], { mode: "oneOf" }).annotate({ "description": "Volume ID(s) to perform the action on. Single volume id or an array of volume ids", "examples": [["c57fcf3a-e339-467a-800e-43797ec6f1db"]] }), "size": Schema.optionalKey(Schema.Number.annotate({ "description": "New volume size in GB. Can't be lower than current size", "examples": [100] }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "instance_id": Schema.optionalKey(Schema.String.annotate({ "description": "Instance ID to attach the volume to, if the action is attach", "examples": ["4ff160c2-11f7-4c3e-aa0e-9a979f02a7dd"] })), "instance_ids": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Array of instance IDs to attach the volume to, if the action is attach", "examples": [["c4e00c97-e5a4-4771-9836-dc99105c36df", "f11fab50-9cc6-4945-859b-a5d2590d2683"]] })), "name": Schema.optionalKey(Schema.String.annotate({ "description": "New volume name", "examples": ["volume-name"] })), "type": Schema.optionalKey(Schema.String.annotate({ "description": "Target volume type", "examples": ["NVMe"] })), "is_permanent": Schema.optionalKey(Schema.Boolean.annotate({ "description": "If deleting volume(s), delete them permanently", "examples": [true] })), "location_code": Schema.optionalKey(Schema.String.annotate({ "description": "Target location code if cloning the volume", "examples": ["FIN-01"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PerformVolumeActionPublicDto" })
+export type TagDto = { readonly "key": string, readonly "value"?: string } & { readonly [x: string]: Schema.Json }
+export const TagDto = Schema.StructWithRest(Schema.Struct({ "key": Schema.String.annotate({ "examples": ["environment"] }).check(Schema.isMaxLength(63).annotate({ "expected": "a value with a length of at most 63" })), "value": Schema.optionalKey(Schema.String.annotate({ "description": "Omit for a freeform tag with no value", "examples": ["production"] }).check(Schema.isMaxLength(127).annotate({ "expected": "a value with a length of at most 127" }))) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "TagDto" })
+export type DeleteVolumePublicDto = { readonly "is_permanent"?: boolean } & { readonly [x: string]: Schema.Json }
+export const DeleteVolumePublicDto = Schema.StructWithRest(Schema.Struct({ "is_permanent": Schema.optionalKey(Schema.Boolean.annotate({ "description": "If true, the volume will be removed permanently", "default": false, "examples": [false] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DeleteVolumePublicDto" })
+export type VolumeType = { readonly "type": "HDD" | "NVMe" | "HDD_Shared" | "NVMe_Shared" | "NVMe_Local_Storage" | "NVMe_Shared_Cluster" | "NVMe_OS_Cluster", readonly "price": { readonly [x: string]: Schema.Json }, readonly "is_shared_fs": boolean, readonly "burst_bandwidth": number, readonly "continuous_bandwidth": number, readonly "internal_network_speed": number, readonly "iops": string, readonly "throughput_gbps": number } & { readonly [x: string]: Schema.Json }
+export const VolumeType = Schema.StructWithRest(Schema.Struct({ "type": Schema.Literals(["HDD", "NVMe", "HDD_Shared", "NVMe_Shared", "NVMe_Local_Storage", "NVMe_Shared_Cluster", "NVMe_OS_Cluster"]).annotate({ "description": "Volume type", "examples": ["NVMe"] }), "price": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "Price details", "examples": [{ "price_per_month_per_gb": 0.2, "cps_per_gb": 7.6103500761035e-8, "currency": "usd" }] }), "is_shared_fs": Schema.Boolean.annotate({ "description": "Is shared file system", "examples": [false] }), "burst_bandwidth": Schema.Number.annotate({ "description": "Burst bandwidth", "examples": [2500] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "continuous_bandwidth": Schema.Number.annotate({ "description": "Continuous bandwidth", "examples": [2000] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "internal_network_speed": Schema.Number.annotate({ "description": "Internal network speed", "examples": [50] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "iops": Schema.String.annotate({ "description": "IOPS", "examples": ["100k"] }), "throughput_gbps": Schema.Number.annotate({ "description": "Throughput in GB/s", "examples": [4] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "VolumeType" })
+export type PerformInstanceActionPublicDto = { readonly "action": "boot" | "start" | "shutdown" | "delete" | "discontinue" | "hibernate" | "configure_spot" | "force_shutdown" | "delete_stuck" | "deploy" | "transfer", readonly "id": string | ReadonlyArray<string>, readonly "volume_ids"?: ReadonlyArray<string>, readonly "delete_permanently"?: boolean } & { readonly [x: string]: Schema.Json }
+export const PerformInstanceActionPublicDto = Schema.StructWithRest(Schema.Struct({ "action": Schema.Literals(["boot", "start", "shutdown", "delete", "discontinue", "hibernate", "configure_spot", "force_shutdown", "delete_stuck", "deploy", "transfer"]), "id": Schema.Union([Schema.String.annotate({ "format": "uuid" }), Schema.Array(Schema.String.annotate({ "format": "uuid" }))], { mode: "oneOf" }).annotate({ "description": "Instance ID or list of instance IDs", "examples": [["6fcd7328-3789-4b12-8ab3-82ef4327c754"]] }), "volume_ids": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Volume IDs to delete. Specify empty array to indicate no volumes should be deleted (previously known as \"hibernate\")", "examples": [["0788c8bb-453b-4176-b7cb-bd87475ce425"]] })), "delete_permanently": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Delete the volumes permanently. Only applicable for delete (or discontinue) action, when volume IDs to delete are also provided.", "default": false })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PerformInstanceActionPublicDto" })
+export type InstanceActionResultDto = { readonly "instanceId": string, readonly "action": "boot" | "start" | "shutdown" | "delete" | "discontinue" | "hibernate" | "configure_spot" | "force_shutdown" | "delete_stuck" | "deploy" | "transfer", readonly "status": "success" | "error", readonly "error"?: string, readonly "statusCode"?: number } & { readonly [x: string]: Schema.Json }
+export const InstanceActionResultDto = Schema.StructWithRest(Schema.Struct({ "instanceId": Schema.String.annotate({ "description": "Instance ID", "format": "uuid" }), "action": Schema.Literals(["boot", "start", "shutdown", "delete", "discontinue", "hibernate", "configure_spot", "force_shutdown", "delete_stuck", "deploy", "transfer"]).annotate({ "description": "Action that was requested" }), "status": Schema.Literals(["success", "error"]).annotate({ "description": "Whether the action succeeded or failed" }), "error": Schema.optionalKey(Schema.String.annotate({ "description": "Error message if the action failed" })), "statusCode": Schema.optionalKey(Schema.Number.annotate({ "description": "HTTP status code of the error", "examples": [400] }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "InstanceActionResultDto" })
+export type PerformClusterActionPublicDto = { readonly "action": "discontinue", readonly "id": string } & { readonly [x: string]: Schema.Json }
+export const PerformClusterActionPublicDto = Schema.StructWithRest(Schema.Struct({ "action": Schema.Literal("discontinue").annotate({ "examples": ["discontinue"] }), "id": Schema.String.annotate({ "description": "Cluster ID", "examples": ["0c334a7e-391f-4ec2-87c4-f18813cec5cc"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PerformClusterActionPublicDto" })
+export type SharedVolumeDto = { readonly "name": string, readonly "size": number } & { readonly [x: string]: Schema.Json }
+export const SharedVolumeDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the shared cluster volume", "examples": ["SFS-pmAna3o2"] }), "size": Schema.Number.annotate({ "description": "Size of the shared cluster volume in GB", "examples": [30000] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "SharedVolumeDto" })
+export type ExistingSharedVolumeDto = { readonly "id": string } & { readonly [x: string]: Schema.Json }
+export const ExistingSharedVolumeDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Existing shared volume ID", "examples": ["b79fe4e7-2a2c-4f73-b51a-d1c2418fb1d9"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ExistingSharedVolumeDto" })
+export type DeployClusterResponsePublicApiDto = { readonly "id": string } & { readonly [x: string]: Schema.Json }
+export const DeployClusterResponsePublicApiDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "examples": ["c4d2fca2-debf-4506-9004-77af3be222fc"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DeployClusterResponsePublicApiDto" })
+export type PerformClusterNodeActionPublicDto = { readonly "action": "boot" | "shutdown" | "force_shutdown" } & { readonly [x: string]: Schema.Json }
+export const PerformClusterNodeActionPublicDto = Schema.StructWithRest(Schema.Struct({ "action": Schema.Literals(["boot", "shutdown", "force_shutdown"]).annotate({ "examples": ["shutdown"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PerformClusterNodeActionPublicDto" })
+export type InstanceType = { readonly "best_for": ReadonlyArray<string>, readonly "cpu": { readonly [x: string]: Schema.Json }, readonly "deploy_warning"?: string, readonly "description": string, readonly "gpu": { readonly [x: string]: Schema.Json }, readonly "gpu_memory": { readonly [x: string]: Schema.Json }, readonly "id": string, readonly "instance_type": string, readonly "memory": { readonly [x: string]: Schema.Json }, readonly "model": string, readonly "name": string, readonly "p2p": string, readonly "price_per_hour": string, readonly "spot_price": string, readonly "dynamic_price"?: string, readonly "max_dynamic_price": string, readonly "serverless_price"?: string, readonly "serverless_spot_price"?: string, readonly "storage": { readonly [x: string]: Schema.Json }, readonly "currency": "usd" | "eur", readonly "manufacturer": string, readonly "display_name": string, readonly "supported_os": ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const InstanceType = Schema.StructWithRest(Schema.Struct({ "best_for": Schema.Array(Schema.String).annotate({ "description": "Use cases for instance type", "examples": [["Giant ML models", "Multi-GPU training", "FP64 calculations", "NVLINK"]] }), "cpu": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "CPU details", "examples": [{ "description": "22 CPU", "number_of_cores": 22, "model": "AMD Genoa" }] }), "deploy_warning": Schema.optionalKey(Schema.String.annotate({ "description": "Deploy warning", "examples": ["Make sure your VM is running on latest Nvidia Driver 525.100+ or newer"] })), "description": Schema.String.annotate({ "description": "Instance type description", "examples": ["Dedicated Hardware Instance"] }), "gpu": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "GPU details", "examples": [{ "description": "1x H100 SXM5 80GB", "number_of_gpus": 1 }] }), "gpu_memory": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "GPU memory details", "examples": [{ "description": "80GB GPU RAM", "size_in_gigabytes": 80 }] }), "id": Schema.String.annotate({ "description": "Instance type ID", "examples": ["c01dd00d-0000-4972-ae4e-d429115d055b"] }), "instance_type": Schema.String.annotate({ "description": "Instance type", "examples": ["1H100.80S.22V"] }), "memory": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "Memory details", "examples": [{ "description": "187GB RAM", "size_in_gigabytes": 187 }] }), "model": Schema.String.annotate({ "description": "GPU model", "examples": ["H100"] }), "name": Schema.String.annotate({ "description": "GPU model name", "examples": ["H100 SXM5 80GB"] }), "p2p": Schema.String.annotate({ "description": "P2P details", "examples": ["600 GB/s"] }), "price_per_hour": Schema.String.annotate({ "description": "Price per hour", "examples": ["3.17"] }), "spot_price": Schema.String.annotate({ "description": "Spot price per hour", "examples": ["0.31"] }), "dynamic_price": Schema.optionalKey(Schema.String.annotate({ "description": "Current dynamic price", "examples": ["1.25"] })), "max_dynamic_price": Schema.String.annotate({ "description": "Ceiling value for dynamic price", "examples": ["6.34"] }), "serverless_price": Schema.optionalKey(Schema.String.annotate({ "description": "Current serverless price", "examples": ["1.75"] })), "serverless_spot_price": Schema.optionalKey(Schema.String.annotate({ "description": "Current serverless spot price", "examples": ["0.87"] })), "storage": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "Storage details", "examples": [{ "description": "dynamic" }] }), "currency": Schema.Literals(["usd", "eur"]).annotate({ "description": "Currency type", "examples": ["usd"] }), "manufacturer": Schema.String.annotate({ "description": "Manufacturer", "examples": ["NVIDIA"] }), "display_name": Schema.String.annotate({ "description": "Display name", "examples": ["NVIDIA H100 SXM5 80GB"] }), "supported_os": Schema.Array(Schema.String).annotate({ "description": "Supported OS image types", "examples": [["ubuntu-22.04-cuda-12.3", "ubuntu-24.04"]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "InstanceType" })
+export type InstanceAvailabilityResponseDto = { readonly "location_code": string, readonly "availabilities": ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const InstanceAvailabilityResponseDto = Schema.StructWithRest(Schema.Struct({ "location_code": Schema.String.annotate({ "description": "Location code", "examples": ["FIN-01"] }), "availabilities": Schema.Array(Schema.String).annotate({ "description": "Array of available instance types", "examples": [["1H100.80S.22V", "2H100.80S.60V", "4H100.80S.176V", "8H100.80S.352V"]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "InstanceAvailabilityResponseDto" })
+export type ClusterAvailabilityResponseDto = { readonly "location_code": string, readonly "availabilities": ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const ClusterAvailabilityResponseDto = Schema.StructWithRest(Schema.Struct({ "location_code": Schema.String.annotate({ "description": "Location code", "examples": ["FIN-01"] }), "availabilities": Schema.Array(Schema.String).annotate({ "description": "Array of available cluster types", "examples": [["16H200", "32H200"]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ClusterAvailabilityResponseDto" })
+export type GetKeysResponseDto = { readonly "id": string, readonly "name": string, readonly "key": string, readonly "fingerprint": string, readonly "created_by_user_id": string } & { readonly [x: string]: Schema.Json }
+export const GetKeysResponseDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "SSH key id", "examples": ["f7b3b3b3-1b3b-4b3b-8b3b-3b3b3b3b3b3b"] }), "name": Schema.String.annotate({ "description": "Name of the SSH key", "examples": ["my-key"] }), "key": Schema.String.annotate({ "description": "Public SSH key", "examples": ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD..."] }), "fingerprint": Schema.String.annotate({ "description": "MD5 fingerprint of the public key as colon-separated hex (matches `ssh-keygen -E md5`). `null` if the stored key cannot be parsed.", "examples": ["9b:11:74:af:5c:04:48:31:40:ef:b5:ef:e3:dc:33:81"] }), "created_by_user_id": Schema.String.annotate({ "description": "ID of the user who added this SSH key record to the project. `null` when the creator is unknown or no longer exists.", "format": "uuid" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetKeysResponseDto" })
+export type AddKeyDto = { readonly "name": string, readonly "key": string } & { readonly [x: string]: Schema.Json }
+export const AddKeyDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the SSH key", "examples": ["my-key"] }), "key": Schema.String.annotate({ "description": "Public SSH key", "examples": ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD..."] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "AddKeyDto" })
+export type DeleteKeysPublicDto = { readonly "keys": ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const DeleteKeysPublicDto = Schema.StructWithRest(Schema.Struct({ "keys": Schema.Array(Schema.String).annotate({ "examples": [["4a3e44dc-9d85-4df0-b4c4-637d2acad57f"]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DeleteKeysPublicDto" })
+export type GetScriptResponseDto = { readonly "id": string, readonly "name": string, readonly "script": string, readonly "created_at": string } & { readonly [x: string]: Schema.Json }
+export const GetScriptResponseDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Script ID", "examples": ["20576e7e-4ca9-481e-b181-b3cff4c2c8ab"] }), "name": Schema.String.annotate({ "description": "Script name", "examples": ["My startup script"] }), "script": Schema.String.annotate({ "description": "Script content", "examples": ["#!/bin/bash\n\necho hello world"] }), "created_at": Schema.String.annotate({ "description": "Script creation date", "examples": ["2026-06-12T10:30:00.000Z"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetScriptResponseDto" })
+export type AddScriptDto = { readonly "name": string, readonly "script": string } & { readonly [x: string]: Schema.Json }
+export const AddScriptDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Script name", "examples": ["My startup script"] }), "script": Schema.String.annotate({ "description": "Script content", "examples": ["#!/bin/bash\n\necho hello world"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "AddScriptDto" })
+export type DeleteScriptsDto = { readonly "scripts": ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const DeleteScriptsDto = Schema.StructWithRest(Schema.Struct({ "scripts": Schema.Array(Schema.String).annotate({ "examples": [["413afa2b-32fe-459a-b837-d73a94188f20"]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DeleteScriptsDto" })
+export type Location = { readonly "code": string, readonly "name": string, readonly "country_code": string } & { readonly [x: string]: Schema.Json }
+export const Location = Schema.StructWithRest(Schema.Struct({ "code": Schema.String.annotate({ "description": "Datacenter location code", "examples": ["FIN-01"] }), "name": Schema.String.annotate({ "description": "Location name", "examples": ["Finland 1"] }), "country_code": Schema.String.annotate({ "description": "Country code", "examples": ["FI"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "Location" })
+export type LongTermPeriodResponseDto = { readonly "code": string, readonly "name": string, readonly "is_enabled": boolean, readonly "unit_name": "hour" | "day" | "week" | "month" | "year", readonly "unit_value": number, readonly "discount_percentage": number } & { readonly [x: string]: Schema.Json }
+export const LongTermPeriodResponseDto = Schema.StructWithRest(Schema.Struct({ "code": Schema.String.annotate({ "description": "Long term period code", "examples": ["3_MONTHS"] }), "name": Schema.String.annotate({ "description": "Long term period name", "examples": ["3 months"] }), "is_enabled": Schema.Boolean.annotate({ "description": "Is long term period enabled", "examples": [true] }), "unit_name": Schema.Literals(["hour", "day", "week", "month", "year"]).annotate({ "description": "Time unit name", "examples": ["month"] }), "unit_value": Schema.Number.annotate({ "description": "Time unit value", "examples": [3] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "discount_percentage": Schema.Number.annotate({ "description": "Discount percentage", "examples": [14] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "LongTermPeriodResponseDto" })
+export type ClusterType = { readonly "id": string, readonly "model": string, readonly "name": string, readonly "cluster_type": string, readonly "cpu": { readonly [x: string]: Schema.Json }, readonly "gpu": { readonly [x: string]: Schema.Json }, readonly "gpu_memory": { readonly [x: string]: Schema.Json }, readonly "memory": { readonly [x: string]: Schema.Json }, readonly "price_per_hour": string, readonly "currency": "usd" | "eur", readonly "manufacturer": string, readonly "node_details": ReadonlyArray<string>, readonly "supported_os": ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const ClusterType = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Instance type ID", "examples": ["c01dd00d-0000-4972-ae4e-d429115d055b"] }), "model": Schema.String.annotate({ "description": "GPU model", "examples": ["B200 Cluster"] }), "name": Schema.String.annotate({ "description": "GPU model name", "examples": ["H100 SXM5 80GB"] }), "cluster_type": Schema.String.annotate({ "description": "Instance type", "examples": ["16H200"] }), "cpu": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "CPU details", "examples": [{ "description": "128 CPU", "number_of_cores": 128, "model": "AMD Turin" }] }), "gpu": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "GPU details", "examples": [{ "description": "1x H100 SXM5 80GB", "number_of_gpus": 1 }] }), "gpu_memory": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "GPU memory details", "examples": [{ "description": "80GB GPU RAM", "size_in_gigabytes": 80 }] }), "memory": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "Memory details", "examples": [{ "description": "187GB RAM", "size_in_gigabytes": 187 }] }), "price_per_hour": Schema.String.annotate({ "description": "Price per hour", "examples": ["3.17"] }), "currency": Schema.Literals(["usd", "eur"]).annotate({ "description": "Currency type", "examples": ["usd"] }), "manufacturer": Schema.String.annotate({ "description": "Manufacturer", "examples": ["NVIDIA"] }), "node_details": Schema.Array(Schema.String).annotate({ "description": "Node details" }), "supported_os": Schema.Array(Schema.String).annotate({ "description": "Supported OS image types", "examples": [["ubuntu-22.04-cuda-12.3", "ubuntu-24.04"]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ClusterType" })
+export type ContainerType = { readonly "id": string, readonly "model": string, readonly "name": string, readonly "instance_type": string, readonly "cpu": { readonly [x: string]: Schema.Json }, readonly "gpu": { readonly [x: string]: Schema.Json }, readonly "gpu_memory": { readonly [x: string]: Schema.Json }, readonly "memory": { readonly [x: string]: Schema.Json }, readonly "serverless_price": string, readonly "serverless_spot_price": string, readonly "currency": "usd" | "eur", readonly "manufacturer": string } & { readonly [x: string]: Schema.Json }
+export const ContainerType = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Instance type ID", "examples": ["60006000-6000-47af-8ff0-600060006004"] }), "model": Schema.String.annotate({ "description": "GPU model", "examples": ["RTX PRO 6000"] }), "name": Schema.String.annotate({ "description": "GPU model name", "examples": ["RTX PRO 6000 96GB"] }), "instance_type": Schema.String.annotate({ "description": "Instance type", "examples": ["8RTXPRO6000.224V"] }), "cpu": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "CPU details", "examples": [{ "description": "224 CPU", "number_of_cores": 224, "model": "AMD Turin" }] }), "gpu": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "GPU details", "examples": [{ "description": "8x RTX PRO 6000 96GB", "number_of_gpus": 8 }] }), "gpu_memory": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "GPU memory details", "examples": [{ "description": "768GB GPU RAM", "size_in_gigabytes": 768 }] }), "memory": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "Memory details", "examples": [{ "description": "680GB RAM", "size_in_gigabytes": 680 }] }), "serverless_price": Schema.String.annotate({ "description": "Current serverless price", "examples": ["1.529"] }), "serverless_spot_price": Schema.String.annotate({ "description": "Current serverless spot price", "examples": ["0.7645"] }), "currency": Schema.Literals(["usd", "eur"]).annotate({ "description": "Currency type", "examples": ["usd"] }), "manufacturer": Schema.String.annotate({ "description": "Manufacturer", "examples": ["NVIDIA"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerType" })
+export type ManagedEndpointPrice = { readonly "resource": string, readonly "external_id": string, readonly "unit_price": number, readonly "unit_name": "generation" | "image" | "video" | "input_token" | "output_token" | "token" | "audio_second" | "video_second" | "inference_second" | "hour" | "second" | "minute" | "undefined" | "gpu_hour" | "gb_hour" | "gb_month" | "request", readonly "currency": "usd" | "eur" } & { readonly [x: string]: Schema.Json }
+export const ManagedEndpointPrice = Schema.StructWithRest(Schema.Struct({ "resource": Schema.String.annotate({ "description": "Managed endpoint / inference model identifier", "examples": ["NVIDIA-H100-80GB-HBM3"] }), "external_id": Schema.String.annotate({ "description": "External managed endpoint / inference model identifier", "examples": ["meta-llama-3-1-8b-instruct"] }), "unit_price": Schema.Number.annotate({ "description": "Unit price in the requested currency", "examples": [0.99] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "unit_name": Schema.Literals(["generation", "image", "video", "input_token", "output_token", "token", "audio_second", "video_second", "inference_second", "hour", "second", "minute", "undefined", "gpu_hour", "gb_hour", "gb_month", "request"]).annotate({ "description": "Unit the price is charged per", "examples": ["hour"] }), "currency": Schema.Literals(["usd", "eur"]).annotate({ "description": "Currency type", "examples": ["usd"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ManagedEndpointPrice" })
+export type ContainerRegistryPricingResponseDto = { readonly "price_per_month_per_gb": number, readonly "currency": "usd" | "eur" } & { readonly [x: string]: Schema.Json }
+export const ContainerRegistryPricingResponseDto = Schema.StructWithRest(Schema.Struct({ "price_per_month_per_gb": Schema.Number.annotate({ "description": "Price per GB per month", "examples": [0.2] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "currency": Schema.Literals(["usd", "eur"]).annotate({ "description": "Currency", "examples": ["usd"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerRegistryPricingResponseDto" })
+export type InstanceGroupResponseDto = { readonly "id": string, readonly "project_id": string, readonly "name": string, readonly "description": string, readonly "location_code": string, readonly "instance_type": string, readonly "template": { readonly [x: string]: Schema.Json }, readonly "created_at": string, readonly "updated_at": string, readonly "deleted_at": string } & { readonly [x: string]: Schema.Json }
+export const InstanceGroupResponseDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String, "project_id": Schema.String, "name": Schema.String, "description": Schema.String, "location_code": Schema.String, "instance_type": Schema.String, "template": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "The instance template stored by the group." }), "created_at": Schema.String.annotate({ "format": "date-time" }), "updated_at": Schema.String.annotate({ "format": "date-time" }), "deleted_at": Schema.String.annotate({ "description": "Non-null only on a tombstoned group. Public and internal reads return live groups only.", "format": "date-time" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "InstanceGroupResponseDto" })
+export type InstanceGroupOsVolumeDto = { readonly "size": number, readonly "type"?: string } & { readonly [x: string]: Schema.Json }
+export const InstanceGroupOsVolumeDto = Schema.StructWithRest(Schema.Struct({ "size": Schema.Number.annotate({ "description": "OS volume size in GB for instances created from this group.", "examples": [200] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "type": Schema.optionalKey(Schema.String.annotate({ "description": "Storage type for the OS volume. Defaults to the location default." })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "InstanceGroupOsVolumeDto" })
+export type MutableInstanceGroupTemplateDto = { readonly "ssh_key_ids"?: ReadonlyArray<string>, readonly "startup_script_id"?: string } & { readonly [x: string]: Schema.Json }
+export const MutableInstanceGroupTemplateDto = Schema.StructWithRest(Schema.Struct({ "ssh_key_ids": Schema.optionalKey(Schema.Array(Schema.String)), "startup_script_id": Schema.optionalKey(Schema.String) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "MutableInstanceGroupTemplateDto" })
+export type DeploymentLogEntryPublicApiResponseDto = { readonly "timestamp": string, readonly "container_name": string, readonly "replica": string, readonly "message": string } & { readonly [x: string]: Schema.Json }
+export const DeploymentLogEntryPublicApiResponseDto = Schema.StructWithRest(Schema.Struct({ "timestamp": Schema.String.annotate({ "description": "Log line timestamp, ISO 8601 with nanosecond precision.", "examples": ["2026-06-01T12:00:00.123456789Z"] }), "container_name": Schema.String.annotate({ "description": "Name of the container that produced the log line.", "examples": ["app"] }), "replica": Schema.String.annotate({ "description": "Name of the replica (pod) that produced the log line.", "examples": ["my-deployment-6f9c8b7d5-x2abc"] }), "message": Schema.String.annotate({ "description": "The log line content.", "examples": ["GET /healthz 200"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DeploymentLogEntryPublicApiResponseDto" })
+export type ComputeResource = { readonly "name": string, readonly "size": number } & { readonly [x: string]: Schema.Json }
+export const ComputeResource = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the compute resource", "examples": ["H100"] }), "size": Schema.Number.annotate({ "description": "Number of compute units (e.g. 4 GPUs). Default is 1", "default": 1, "examples": [1, 2, 4, 8, 16, 32] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ComputeResource" })
+export type CreateScaledJobContainerRegistryCredentialsDto = { readonly "name": string } & { readonly [x: string]: Schema.Json }
+export const CreateScaledJobContainerRegistryCredentialsDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the secret containing the container registry credentials", "examples": ["dockerhub-credentials"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScaledJobContainerRegistryCredentialsDto" })
+export type CreateScaledJobContainerHealthcheckSettings = { readonly "enabled": boolean, readonly "port": number, readonly "path": string } & { readonly [x: string]: Schema.Json }
+export const CreateScaledJobContainerHealthcheckSettings = Schema.StructWithRest(Schema.Struct({ "enabled": Schema.Boolean.annotate({ "description": "Is healthcheck enabled for the container. It it used to check if the container is ready to accept traffic", "examples": [true] }), "port": Schema.Number.annotate({ "description": "Port to be used for healthcheck", "examples": [8081] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "path": Schema.String.annotate({ "description": "Path to be used for healthcheck", "examples": ["/health"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScaledJobContainerHealthcheckSettings" })
+export type CreateScaledJobContainerEntrypointOverridesSettings = { readonly "enabled": boolean, readonly "entrypoint"?: ReadonlyArray<string>, readonly "cmd"?: ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const CreateScaledJobContainerEntrypointOverridesSettings = Schema.StructWithRest(Schema.Struct({ "enabled": Schema.Boolean.annotate({ "description": "Is the default docker start command and arguments overridden", "examples": [true] }), "entrypoint": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Entrypoint command to start the container", "examples": [["python3", "main.py"]] })), "cmd": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Arguments to the entrypoint command", "examples": [["--port", "8080"]] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScaledJobContainerEntrypointOverridesSettings" })
+export type CreateScaledJobContainerEnvVar = { readonly "name": string, readonly "value_or_reference_to_secret": string, readonly "type": "plain" | "secret" } & { readonly [x: string]: Schema.Json }
+export const CreateScaledJobContainerEnvVar = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the environment variable", "examples": ["MY_ENV_VAR"] }), "value_or_reference_to_secret": Schema.String.annotate({ "description": "Value of the environment variable, or a reference to the secret", "examples": ["my-value"] }), "type": Schema.Literals(["plain", "secret"]).annotate({ "description": "Type of the environment variable", "examples": ["plain"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScaledJobContainerEnvVar" })
+export type CreateScaledJobContainerVolumeMount = { readonly "type": "scratch" | "shared" | "secret" | "memory", readonly "mount_path": string, readonly "secret_name"?: string, readonly "size_in_mb"?: 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384 | 32768, readonly "volumeId": string } & { readonly [x: string]: Schema.Json }
+export const CreateScaledJobContainerVolumeMount = Schema.StructWithRest(Schema.Struct({ "type": Schema.Literals(["scratch", "shared", "secret", "memory"]).annotate({ "description": "Type of the volume", "examples": ["scratch", "secret", "memory", "shared"] }), "mount_path": Schema.String.annotate({ "description": "Path in the container where the volume will be mounted", "examples": ["/data"] }), "secret_name": Schema.optionalKey(Schema.String.annotate({ "description": "Name of the secret to be mounted, if volume type is \"secret\"", "examples": ["my-secret"] })), "size_in_mb": Schema.optionalKey(Schema.Literals([64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]).annotate({ "description": "Size of volume in MiB, if volume type is \"memory\"", "examples": [64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768] })), "volumeId": Schema.String.annotate({ "description": "Volume id of the shared storage", "examples": ["fa4a0338-65b2-4819-8450-821190fbaf6d"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScaledJobContainerVolumeMount" })
+export type CreateScaledJobComputeResourceDto = { readonly "name": string, readonly "size": number } & { readonly [x: string]: Schema.Json }
+export const CreateScaledJobComputeResourceDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the compute resource", "examples": ["H100"] }), "size": Schema.Number.annotate({ "description": "Number of compute units (e.g. 4 GPUs). Default is 1", "default": 1, "examples": [1, 2, 4, 8, 16, 32] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScaledJobComputeResourceDto" })
+export type CreateScaledJobScalingOptionsDto = { readonly "max_replica_count": number, readonly "queue_message_ttl_seconds": number, readonly "deadline_seconds": number } & { readonly [x: string]: Schema.Json }
+export const CreateScaledJobScalingOptionsDto = Schema.StructWithRest(Schema.Struct({ "max_replica_count": Schema.Number.annotate({ "description": "Maximum number of replicas", "examples": [1] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "queue_message_ttl_seconds": Schema.Number.annotate({ "description": "Duration in seconds after which messages in the queue will be dropped", "examples": [300] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "deadline_seconds": Schema.Number.annotate({ "description": "Duration in seconds that a job may run before the system attempts to terminate it." }).check(Schema.isFinite().annotate({ "expected": "a finite number" })).check(Schema.isGreaterThanOrEqualTo(600).annotate({ "expected": "a value greater than or equal to 600" })).check(Schema.isLessThanOrEqualTo(604800).annotate({ "expected": "a value less than or equal to 604800" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScaledJobScalingOptionsDto" })
+export type ImageInfoResponseDto = { readonly "image": string, readonly "last_updated_at"?: string } & { readonly [x: string]: Schema.Json }
+export const ImageInfoResponseDto = Schema.StructWithRest(Schema.Struct({ "image": Schema.String.annotate({ "description": "The full image reference including registry, image name, and tag (e.g., Docker image URL)", "examples": ["registry-1.docker.io/chentex/random-logger:v1.0.1"] }), "last_updated_at": Schema.optionalKey(Schema.String.annotate({ "description": "The ISO 8601 timestamp indicating when the container image was last updated", "examples": ["2026-10-02T11:36:49.097Z"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ImageInfoResponseDto" })
+export type HealthcheckSettingsResponseDto = { readonly "enabled": boolean, readonly "port": number, readonly "path": string } & { readonly [x: string]: Schema.Json }
+export const HealthcheckSettingsResponseDto = Schema.StructWithRest(Schema.Struct({ "enabled": Schema.Boolean.annotate({ "description": "Is healthcheck enabled for the container. It it used to check if the container is ready to accept traffic", "examples": [true] }), "port": Schema.Number.annotate({ "description": "Port to be used for healthcheck", "examples": [8081] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "path": Schema.String.annotate({ "description": "Path to be used for healthcheck", "examples": ["/health"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "HealthcheckSettingsResponseDto" })
+export type EntrypointOverridesSettingsResponseDto = { readonly "enabled": boolean, readonly "entrypoint"?: ReadonlyArray<string>, readonly "cmd"?: ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const EntrypointOverridesSettingsResponseDto = Schema.StructWithRest(Schema.Struct({ "enabled": Schema.Boolean.annotate({ "description": "Is the default docker start command and arguments overridden", "examples": [true] }), "entrypoint": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Entrypoint command to start the container", "examples": [["python3", "main.py"]] })), "cmd": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Arguments to the entrypoint command", "examples": [["--port", "8080"]] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "EntrypointOverridesSettingsResponseDto" })
+export type EnvVarResponseDto = { readonly "name": string, readonly "value_or_reference_to_secret": string, readonly "type": "plain" | "secret" } & { readonly [x: string]: Schema.Json }
+export const EnvVarResponseDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the environment variable", "examples": ["MY_ENV_VAR"] }), "value_or_reference_to_secret": Schema.String.annotate({ "description": "Value of the environment variable, or a reference to the secret", "examples": ["my-value"] }), "type": Schema.Literals(["plain", "secret"]).annotate({ "description": "Type of the environment variable", "examples": ["plain"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "EnvVarResponseDto" })
+export type VolumeMountResponseDto = { readonly "type": "scratch" | "shared" | "secret" | "memory", readonly "mount_path": string, readonly "secret_name"?: string, readonly "size_in_mb"?: 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384 | 32768, readonly "volume_id"?: string } & { readonly [x: string]: Schema.Json }
+export const VolumeMountResponseDto = Schema.StructWithRest(Schema.Struct({ "type": Schema.Literals(["scratch", "shared", "secret", "memory"]).annotate({ "description": "Type of the volume", "examples": ["scratch", "secret", "memory", "shared"] }), "mount_path": Schema.String.annotate({ "description": "Path in the container where the volume will be mounted", "examples": ["/data"] }), "secret_name": Schema.optionalKey(Schema.String.annotate({ "description": "Name of the secret to be mounted, if volume type is \"secret\"", "examples": ["my-secret"] })), "size_in_mb": Schema.optionalKey(Schema.Literals([64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]).annotate({ "description": "Size of volume in MiB, if volume type is \"memory\"", "examples": [64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768] })), "volume_id": Schema.optionalKey(Schema.String.annotate({ "description": "Volume id of the shared storage, if volume type is \"shared\"", "examples": ["fa4a0338-65b2-4819-8450-821190fbaf6d"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "VolumeMountResponseDto" })
+export type ContainerRegistryCredentialsResponseDto = { readonly "name": string } & { readonly [x: string]: Schema.Json }
+export const ContainerRegistryCredentialsResponseDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Credential name of the secret containing the credentials", "examples": ["dockerhub-credentials"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerRegistryCredentialsResponseDto" })
+export type PatchScaledJobScalingOptionsDto = { readonly "max_replica_count"?: number, readonly "queue_message_ttl_seconds"?: number, readonly "deadline_seconds"?: number } & { readonly [x: string]: Schema.Json }
+export const PatchScaledJobScalingOptionsDto = Schema.StructWithRest(Schema.Struct({ "max_replica_count": Schema.optionalKey(Schema.Number.annotate({ "description": "Maximum number of replicas", "examples": [1] }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "queue_message_ttl_seconds": Schema.optionalKey(Schema.Number.annotate({ "description": "Duration in seconds after which messages in the queue will be dropped", "examples": [300] }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "deadline_seconds": Schema.optionalKey(Schema.Number.annotate({ "description": "Duration in seconds that a job may run before the system attempts to terminate it." }).check(Schema.isFinite().annotate({ "expected": "a finite number" })).check(Schema.isGreaterThanOrEqualTo(600).annotate({ "expected": "a value greater than or equal to 600" })).check(Schema.isLessThanOrEqualTo(604800).annotate({ "expected": "a value less than or equal to 604800" }))) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PatchScaledJobScalingOptionsDto" })
+export type ScalingOptionsResponseDto = { readonly "max_replica_count": number, readonly "queue_message_ttl_seconds": number, readonly "deadline_seconds": number } & { readonly [x: string]: Schema.Json }
+export const ScalingOptionsResponseDto = Schema.StructWithRest(Schema.Struct({ "max_replica_count": Schema.Number.annotate({ "description": "Maximum number of replicas" }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "queue_message_ttl_seconds": Schema.Number.annotate({ "description": "Duration in seconds after which messages in the queue will be dropped" }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "deadline_seconds": Schema.Number.annotate({ "description": "Duration in seconds that a job may run before the system attempts to terminate it." }).check(Schema.isFinite().annotate({ "expected": "a finite number" })).check(Schema.isGreaterThanOrEqualTo(600).annotate({ "expected": "a value greater than or equal to 600" })).check(Schema.isLessThanOrEqualTo(604800).annotate({ "expected": "a value less than or equal to 604800" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ScalingOptionsResponseDto" })
+export type GetScaledJobStatusResponseDto = { readonly "status": "paused" | "terminating" | "running" | "ready" } & { readonly [x: string]: Schema.Json }
+export const GetScaledJobStatusResponseDto = Schema.StructWithRest(Schema.Struct({ "status": Schema.Literals(["paused", "terminating", "running", "ready"]).annotate({ "description": "Status of the job deployment", "examples": ["ready"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetScaledJobStatusResponseDto" })
+export type HealthcheckSettings = { readonly "enabled": boolean, readonly "port": number, readonly "path": string } & { readonly [x: string]: Schema.Json }
+export const HealthcheckSettings = Schema.StructWithRest(Schema.Struct({ "enabled": Schema.Boolean.annotate({ "description": "Is healthcheck enabled for the container. It it used to check if the container is ready to accept traffic", "examples": [true] }), "port": Schema.Number.annotate({ "description": "Port to be used for healthcheck", "examples": [8081] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "path": Schema.String.annotate({ "description": "Path to be used for healthcheck", "examples": ["/health"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "HealthcheckSettings" })
+export type EntrypointOverridesSettings = { readonly "enabled": boolean, readonly "entrypoint"?: ReadonlyArray<string>, readonly "cmd"?: ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const EntrypointOverridesSettings = Schema.StructWithRest(Schema.Struct({ "enabled": Schema.Boolean.annotate({ "description": "Is the default docker start command and arguments overridden", "examples": [true] }), "entrypoint": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Entrypoint command to start the container", "examples": [["python3", "main.py"]] })), "cmd": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Arguments to the entrypoint command", "examples": [["--port", "8080"]] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "EntrypointOverridesSettings" })
+export type EnvVarPublicApi = { readonly "name": string, readonly "value_or_reference_to_secret": string, readonly "type": "plain" | "secret" } & { readonly [x: string]: Schema.Json }
+export const EnvVarPublicApi = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the environment variable", "examples": ["MY_ENV_VAR"] }), "value_or_reference_to_secret": Schema.String.annotate({ "description": "Value of the environment variable, or a reference to the secret", "examples": ["my-value"] }), "type": Schema.Literals(["plain", "secret"]).annotate({ "description": "Type of the environment variable", "examples": ["plain"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "EnvVarPublicApi" })
+export type ScratchVolumeMountDto = { readonly "type": "scratch", readonly "mount_path": string } & { readonly [x: string]: Schema.Json }
+export const ScratchVolumeMountDto = Schema.StructWithRest(Schema.Struct({ "type": Schema.Literal("scratch").annotate({ "description": "Type of the volume", "examples": ["scratch"] }), "mount_path": Schema.String.annotate({ "description": "Path in the container where the volume will be mounted", "examples": ["/data"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ScratchVolumeMountDto" })
+export type SecretVolumeMountDto = { readonly "type": "secret", readonly "mount_path": string, readonly "secret_name": string } & { readonly [x: string]: Schema.Json }
+export const SecretVolumeMountDto = Schema.StructWithRest(Schema.Struct({ "type": Schema.Literal("secret").annotate({ "description": "Type of the volume", "examples": ["secret"] }), "mount_path": Schema.String.annotate({ "description": "Path in the container where the volume will be mounted.", "examples": ["/secret-files"] }), "secret_name": Schema.String.annotate({ "description": "Name of the fileset secret to be mounted", "examples": ["my-secret"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "SecretVolumeMountDto" })
+export type SharedVolumeMountDto = { readonly "type": "shared", readonly "mount_path": string, readonly "volume_id": string } & { readonly [x: string]: Schema.Json }
+export const SharedVolumeMountDto = Schema.StructWithRest(Schema.Struct({ "type": Schema.Literal("shared").annotate({ "description": "Type of the volume", "examples": ["shared"] }), "mount_path": Schema.String.annotate({ "description": "Path in the container where the volume will be mounted.", "examples": ["/shared"] }), "volume_id": Schema.String.annotate({ "description": "ID of the shared volume to be mounted", "examples": ["b94cf73c-33ee-472f-8aaa-23590dfcf570"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "SharedVolumeMountDto" })
+export type MemoryVolumeMountDto = { readonly "type": "memory", readonly "mount_path": string, readonly "size_in_mb": 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384 | 32768 } & { readonly [x: string]: Schema.Json }
+export const MemoryVolumeMountDto = Schema.StructWithRest(Schema.Struct({ "type": Schema.Literal("memory").annotate({ "description": "Type of the volume", "examples": ["memory"] }), "mount_path": Schema.String.annotate({ "description": "Path in the container where the volume will be mounted. This setting is fixed for now and cannot be changed", "default": "/dev/shm", "examples": ["/dev/shm"] }), "size_in_mb": Schema.Literals([64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]).annotate({ "description": "Size of memory volume in MiB", "examples": [64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "MemoryVolumeMountDto" })
+export type ContainerRegistryCredentials = { readonly "name": string } & { readonly [x: string]: Schema.Json }
+export const ContainerRegistryCredentials = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Credential name of the secret containing the credentials", "examples": ["dockerhub-credentials"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerRegistryCredentials" })
+export type ScalingPolicy = { readonly "delay_seconds": number } & { readonly [x: string]: Schema.Json }
+export const ScalingPolicy = Schema.StructWithRest(Schema.Struct({ "delay_seconds": Schema.Number.annotate({ "description": "Cooldown period in seconds before the deployment scales up or down", "examples": [300] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ScalingPolicy" })
+export type QueueLoadScalingTrigger = { readonly "threshold": number } & { readonly [x: string]: Schema.Json }
+export const QueueLoadScalingTrigger = Schema.StructWithRest(Schema.Struct({ "threshold": Schema.Number.annotate({ "description": "Threshold value for queue load. Queue item to replica ratio", "examples": [2] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "QueueLoadScalingTrigger" })
+export type UtilizationScalingTrigger = { readonly "enabled": boolean, readonly "threshold": number } & { readonly [x: string]: Schema.Json }
+export const UtilizationScalingTrigger = Schema.StructWithRest(Schema.Struct({ "enabled": Schema.Boolean.annotate({ "description": "Is the trigger enabled", "examples": [true] }), "threshold": Schema.Number.annotate({ "description": "Threshold value for utilization, in percent", "examples": [80] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "UtilizationScalingTrigger" })
+export type AutoupdateSettings = { readonly "enabled": boolean, readonly "mode": "latest" | "semantic", readonly "tag_filter"?: string } & { readonly [x: string]: Schema.Json }
+export const AutoupdateSettings = Schema.StructWithRest(Schema.Struct({ "enabled": Schema.Boolean.annotate({ "description": "Is autoupdate enabled for the container", "examples": [true] }), "mode": Schema.Literals(["latest", "semantic"]).annotate({ "description": "Autoupdate mode for the container", "examples": ["latest"] }), "tag_filter": Schema.optionalKey(Schema.String.annotate({ "description": "Tag filter for the autoupdate. Supports regex", "examples": ["^v?1.0.d+$"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "AutoupdateSettings" })
+export type GetDeploymentStatusResponseDto = { readonly "status": "initializing" | "healthy" | "degraded" | "unhealthy" | "paused" | "quota_reached" | "image_pulling" | "updating" | "terminating" } & { readonly [x: string]: Schema.Json }
+export const GetDeploymentStatusResponseDto = Schema.StructWithRest(Schema.Struct({ "status": Schema.Literals(["initializing", "healthy", "degraded", "unhealthy", "paused", "quota_reached", "image_pulling", "updating", "terminating"]).annotate({ "description": "Status of the deployment", "examples": ["healthy"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetDeploymentStatusResponseDto" })
+export type ReplicaInfo = { readonly "id": string, readonly "status": "unavailable" | "initializing" | "running" | "terminating" | "error" | "imagepulling", readonly "started_at": string, readonly "image"?: string, readonly "image_name"?: string, readonly "image_tag"?: string } & { readonly [x: string]: Schema.Json }
+export const ReplicaInfo = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Replica ID", "examples": ["v4cb4"] }), "status": Schema.Literals(["unavailable", "initializing", "running", "terminating", "error", "imagepulling"]).annotate({ "description": "Replica status", "examples": ["running"] }), "started_at": Schema.String.annotate({ "description": "Time when the replica was started, ISO 8601 string format", "examples": ["2021-06-14T12:00:00Z"] }), "image": Schema.optionalKey(Schema.String.annotate({ "description": "Full container image reference", "examples": ["docker.io/library/nginx:1.21"] })), "image_name": Schema.optionalKey(Schema.String.annotate({ "description": "Container image name", "examples": ["nginx"] })), "image_tag": Schema.optionalKey(Schema.String.annotate({ "description": "Container image tag", "examples": ["1.21"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ReplicaInfo" })
+export type DeleteEnvironmentVariablesPublicApiDto = { readonly "container_name": string, readonly "env": ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const DeleteEnvironmentVariablesPublicApiDto = Schema.StructWithRest(Schema.Struct({ "container_name": Schema.String.annotate({ "description": "Container name", "examples": ["flux-0"] }), "env": Schema.Array(Schema.String).annotate({ "description": "List of environment variable names to delete", "examples": [["MY_ENV_VAR", "MY_OTHER_ENV_VAR"]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DeleteEnvironmentVariablesPublicApiDto" })
+export type GetComputeResourcesPublicApiResponseDto = { readonly "name": string, readonly "size": number, readonly "is_available": boolean } & { readonly [x: string]: Schema.Json }
+export const GetComputeResourcesPublicApiResponseDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the compute resource", "examples": ["H100"] }), "size": Schema.Number.annotate({ "description": "Number of compute units (e.g. 4 GPUs). Default is 1", "default": 1, "examples": [1, 2, 4, 8, 16, 32] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "is_available": Schema.Boolean.annotate({ "description": "Is the compute resource available", "examples": [true] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetComputeResourcesPublicApiResponseDto" })
+export type GetSecretsPublicApiResponseDto = { readonly "name": string, readonly "created_at": string, readonly "secret_type": "generic" | "file-secret" } & { readonly [x: string]: Schema.Json }
+export const GetSecretsPublicApiResponseDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the secret", "examples": ["api-token"] }), "created_at": Schema.String.annotate({ "description": "The date when the secret was created", "examples": ["2020-08-12T12:00:00.000Z"] }), "secret_type": Schema.Literals(["generic", "file-secret"]).annotate({ "description": "Type of the secret", "examples": ["generic"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetSecretsPublicApiResponseDto" })
+export type CreateSecretPublicApiDto = { readonly "name": string, readonly "value": string } & { readonly [x: string]: Schema.Json }
+export const CreateSecretPublicApiDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the secret", "examples": ["api-token"] }), "value": Schema.String.annotate({ "description": "Value of the secret", "examples": ["tk_1234567890-secret"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateSecretPublicApiDto" })
+export type GetFilesetSecretsPublicApiResponseDto = { readonly "name": string, readonly "created_at": string, readonly "secret_type": "file-secret", readonly "file_names": ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const GetFilesetSecretsPublicApiResponseDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the secret", "examples": ["api-token"] }), "created_at": Schema.String.annotate({ "description": "The date when the secret was created", "examples": ["2020-08-12T12:00:00.000Z"] }), "secret_type": Schema.Literal("file-secret").annotate({ "description": "Type of the secret", "examples": ["file-secret"] }), "file_names": Schema.Array(Schema.String).annotate({ "description": "Names of the files contained in the fileset secret", "examples": [["tokens.txt", "config.json"]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetFilesetSecretsPublicApiResponseDto" })
+export type SecretFilePublicApiDto = { readonly "file_name": string, readonly "base64_content": string } & { readonly [x: string]: Schema.Json }
+export const SecretFilePublicApiDto = Schema.StructWithRest(Schema.Struct({ "file_name": Schema.String.annotate({ "description": "Name of the file", "examples": ["file.txt"] }), "base64_content": Schema.String.annotate({ "description": "Base64 encoded content of the file", "examples": ["dGVzdCBmaWxl"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "SecretFilePublicApiDto" })
+export type GetRegistryCredentialsPublicApiResponseDto = { readonly "name": string, readonly "created_at": string } & { readonly [x: string]: Schema.Json }
+export const GetRegistryCredentialsPublicApiResponseDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "The name given to the registry credential", "examples": ["dockerhub-credentials"] }), "created_at": Schema.String.annotate({ "description": "The date when the registry credential was created", "examples": ["2020-08-12T12:00:00.000Z"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetRegistryCredentialsPublicApiResponseDto" })
+export type CreateRegistryCredentialsPublicApiDto = { readonly "name": string, readonly "type": "verda" | "gcr" | "dockerhub" | "ghcr" | "aws-ecr" | "scaleway" | "custom", readonly "username"?: string, readonly "access_token"?: string, readonly "service_account_key"?: string, readonly "docker_config_json"?: string, readonly "access_key_id"?: string, readonly "secret_access_key"?: string, readonly "region"?: string, readonly "ecr_repo"?: string, readonly "scaleway_domain"?: string, readonly "scaleway_uuid"?: string } & { readonly [x: string]: Schema.Json }
+export const CreateRegistryCredentialsPublicApiDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the registry credential", "examples": ["dockerhub-credentials"] }), "type": Schema.Literals(["verda", "gcr", "dockerhub", "ghcr", "aws-ecr", "scaleway", "custom"]).annotate({ "description": "Type of the container registry", "examples": ["dockerhub"] }), "username": Schema.optionalKey(Schema.String.annotate({ "description": "Username for the Docker Hub registry, if selected type is DockerHub", "examples": ["JADES-GS-z14-0"] })), "access_token": Schema.optionalKey(Schema.String.annotate({ "description": "Access token for the registry, if selected type is DockerHub or Github" })), "service_account_key": Schema.optionalKey(Schema.String.annotate({ "description": "Service account key for the Google Cloud Registry (Google Artifact Registry), if selected type is GCR", "examples": ["{\n  \"type\": \"service_account\",\n  \"project_id\": \"clever-overview-111111-b1\",\n  \"private_key_id\": \"5434a8e7108656c582b4567890b77e9eaa7501c5\",\n  \"private_key\": \"-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBg...1yAFKgXXFmIVqXPC1X\n-----END PRIVATE KEY-----\n\",\n  \"client_email\": \"test-account@clever-overview-111111-b1.iam.gserviceaccount.com\",\n  \"client_id\": \"107932416123456636077\",\n  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/test-account%40clever-overview-111111-b1.iam.gserviceaccount.com\",\n  \"universe_domain\": \"googleapis.com\"\n}"] })), "docker_config_json": Schema.optionalKey(Schema.String.annotate({ "description": "Docker config JSON for the custom registry, if selected type is Custom" })), "access_key_id": Schema.optionalKey(Schema.String.annotate({ "description": "Access key ID for the AWS Elastic Container Registry, if selected type is AWSECR", "examples": ["AKIAEXAMPLE123456"] })), "secret_access_key": Schema.optionalKey(Schema.String.annotate({ "description": "Secret access key for the AWS Elastic Container Registry, if selected type is AWSECR", "examples": ["wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"] })), "region": Schema.optionalKey(Schema.String.annotate({ "description": "Region for the AWS Elastic Container Registry, if selected type is AWSECR", "examples": ["eu-north-1"] })), "ecr_repo": Schema.optionalKey(Schema.String.annotate({ "description": "Repository for the AWS Elastic Container Registry, if selected type is AWSECR", "examples": ["887841266746.dkr.ecr.eu-north-1.amazonaws.com"] })), "scaleway_domain": Schema.optionalKey(Schema.String.annotate({ "description": "Region-specific domain, if selected type is Scaleway", "examples": ["rg.nl-ams.scw.cloud"] })), "scaleway_uuid": Schema.optionalKey(Schema.String.annotate({ "description": "API secret key, if selected type is Scaleway", "examples": ["ea55b6d2-c789-4b31-88b1-f77ba6ff7cd6"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateRegistryCredentialsPublicApiDto" })
+export type ContainerDeploymentTemplateFeaturePublicApiDto = { readonly "id": string, readonly "name": string, readonly "description"?: string, readonly "is_default": boolean, readonly "conflicts_with": ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const ContainerDeploymentTemplateFeaturePublicApiDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Feature identifier, passed in `features` when deploying", "examples": ["tool_calling"] }), "name": Schema.String.annotate({ "description": "Human-readable name", "examples": ["Tool calling"] }), "description": Schema.optionalKey(Schema.String.annotate({ "description": "What the feature enables", "examples": ["Enables tool calling with the Qwen chat template"] })), "is_default": Schema.Boolean.annotate({ "description": "Whether the feature is on when no features are given", "examples": [true] }), "conflicts_with": Schema.Array(Schema.String).annotate({ "description": "Feature ids that cannot be enabled together with this one", "examples": [[]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerDeploymentTemplateFeaturePublicApiDto" })
+export type SystemLogEntryPublicApiResponseDto = { readonly "timestamp": string, readonly "reason": string, readonly "message": string, readonly "involved_object": string, readonly "count": number } & { readonly [x: string]: Schema.Json }
+export const SystemLogEntryPublicApiResponseDto = Schema.StructWithRest(Schema.Struct({ "timestamp": Schema.String.annotate({ "description": "Latest observed timestamp of the group, RFC3339 with nanosecond precision.", "examples": ["2026-06-01T12:00:00.123456789Z"] }), "reason": Schema.String.annotate({ "description": "Display reason of the event.", "examples": ["SchedulingFailed"] }), "message": Schema.String.annotate({ "description": "Event message without an observation-count suffix.", "examples": ["Replica is waiting for its storage volume to be provisioned"] }), "involved_object": Schema.String.annotate({ "description": "Workload or child object the event concerns; not necessarily a replica.", "examples": ["my-deployment-6f9c8b7d5-x2abc"] }), "count": Schema.Number.annotate({ "description": "Collected records grouped into this entry, not a Kubernetes occurrence count. May be partial at the raw scan cap.", "examples": [3] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })).check(Schema.isGreaterThanOrEqualTo(1).annotate({ "expected": "a value greater than or equal to 1" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "SystemLogEntryPublicApiResponseDto" })
+export type GetAuditLogResponseListDto = { readonly "data": ReadonlyArray<AuditLogResponseDto>, readonly "cursor"?: string } & { readonly [x: string]: Schema.Json }
+export const GetAuditLogResponseListDto = Schema.StructWithRest(Schema.Struct({ "data": Schema.Array(AuditLogResponseDto).annotate({ "description": "List of audit log events" }), "cursor": Schema.optionalKey(Schema.String.annotate({ "description": "Cursor for next page, if there are more results", "examples": ["log_033FNaNcc0AtphhH71DLBW"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetAuditLogResponseListDto" })
+export type GetActivityJournalResponseDto = { readonly "id": string, readonly "object_id": string, readonly "object_type": "compute" | "volume", readonly "action_code": "create" | "start" | "start:complete" | "shutdown:complete" | "shutdown" | "delete" | "delete:complete" | "attach" | "attach:complete" | "detach" | "detach:complete" | "clone" | "resize" | "rename" | "restore" | "transfer" | "trash" | "trash:complete" | "configure_spot" | "cancel" | "provisioning" | "running" | "installation:failed" | "validating" | "deleting" | "error", readonly "actor_id"?: string, readonly "actor_email"?: string, readonly "project_id": string, readonly "timestamp": string, readonly "location_code": string, readonly "request_origin"?: string, readonly "request_ip"?: string, readonly "error_message"?: string, readonly "parent_id"?: string, readonly "service"?: string, readonly "target_location_code"?: string, readonly "volume"?: ActivityVolumeDto, readonly "compute"?: ActivityComputeDto, readonly "target_volume_id"?: string, readonly "target_volume"?: { readonly "id": string, readonly "name": string, readonly "created_at": string, readonly "gb": number, readonly "is_shared_fs": boolean, readonly "template_type": "HDD" | "NVMe" | "HDD_Shared" | "NVMe_Shared" | "NVMe_Local_Storage" | "NVMe_Shared_Cluster" | "NVMe_OS_Cluster", readonly "location_code": string } & { readonly [x: string]: Schema.Json }, readonly "target_compute_id"?: string, readonly "target_compute"?: { readonly "id": string, readonly "hostname": string, readonly "compute_type": string, readonly "is_cluster": boolean, readonly "ip"?: string, readonly "os_volume_id"?: string, readonly "location_code"?: string } & { readonly [x: string]: Schema.Json }, readonly "source_volume_id"?: string, readonly "source_volume"?: { readonly "id": string, readonly "name": string, readonly "created_at": string, readonly "gb": number, readonly "is_shared_fs": boolean, readonly "template_type": "HDD" | "NVMe" | "HDD_Shared" | "NVMe_Shared" | "NVMe_Local_Storage" | "NVMe_Shared_Cluster" | "NVMe_OS_Cluster", readonly "location_code": string } & { readonly [x: string]: Schema.Json }, readonly "source_compute_id"?: string, readonly "source_compute"?: { readonly "id": string, readonly "hostname": string, readonly "compute_type": string, readonly "is_cluster": boolean, readonly "ip"?: string, readonly "os_volume_id"?: string, readonly "location_code"?: string } & { readonly [x: string]: Schema.Json }, readonly "properties"?: { readonly [x: string]: Schema.Json } } & { readonly [x: string]: Schema.Json }
+export const GetActivityJournalResponseDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Event ID, unique within the project. Please note that it is not UUID but a combined string to identify the event.", "examples": ["instance-log-123"] }), "object_id": Schema.String.annotate({ "description": "ID of the object that the event is related to.", "examples": ["7724f50c-0dc7-40f4-af18-2ccbfa75897c"] }), "object_type": Schema.Literals(["compute", "volume"]).annotate({ "description": "Object type that the event is related to.", "examples": ["compute"] }), "action_code": Schema.Literals(["create", "start", "start:complete", "shutdown:complete", "shutdown", "delete", "delete:complete", "attach", "attach:complete", "detach", "detach:complete", "clone", "resize", "rename", "restore", "transfer", "trash", "trash:complete", "configure_spot", "cancel", "provisioning", "running", "installation:failed", "validating", "deleting", "error"]).annotate({ "description": "Action that was performed on the object.", "examples": ["start"] }), "actor_id": Schema.optionalKey(Schema.String.annotate({ "description": "ID of the actor that performed the action. For some actions, such as spot discontinue, the actor is not available and assumed to be system.", "examples": ["c560fa18-fb8c-4e5a-a609-dc0bd3fb2b2b"] })), "actor_email": Schema.optionalKey(Schema.String.annotate({ "description": "Email of the actor that performed the action.", "examples": ["user@datacrunch.io"] })), "project_id": Schema.String.annotate({ "description": "ID of the project that the event is related to.", "examples": ["9f138172-4cc9-4f32-9ebb-ca89dc9da2f1"] }), "timestamp": Schema.String.annotate({ "description": "When the event happened.", "examples": ["2026-03-17T14:15:52.872Z"] }), "location_code": Schema.String.annotate({ "description": "Datacenter location code where the event happened or this object is located.", "examples": ["FIN-01"] }), "request_origin": Schema.optionalKey(Schema.String.annotate({ "description": "Origin of the request that caused the event. For example, public API, Console UI, or undefined for the internal system.", "examples": ["public-api-v1"] })), "request_ip": Schema.optionalKey(Schema.String.annotate({ "description": "IP address of the request that caused the event.", "examples": ["127.0.0.1"] })), "error_message": Schema.optionalKey(Schema.String.annotate({ "description": "For error events, the error message", "examples": ["GPU_QUOTA_EXCEEDED"] })), "parent_id": Schema.optionalKey(Schema.String.annotate({ "description": "For some events, for example attach volume during instance provisioning, the ID of the parent event.", "examples": ["compute-log-123"] })), "service": Schema.optionalKey(Schema.String.annotate({ "description": "For some events, the internal service that caused the event.", "examples": ["VolumeProvider"] })), "target_location_code": Schema.optionalKey(Schema.String.annotate({ "description": "For cross-datacenter events, the location code of the target location.", "examples": ["ICE-01"] })), "volume": Schema.optionalKey(Schema.suspend((): Schema.Codec<ActivityVolumeDto> => ActivityVolumeDto).annotate({ "description": "Associated volume object, if the object is a volume." })), "compute": Schema.optionalKey(Schema.suspend((): Schema.Codec<ActivityComputeDto> => ActivityComputeDto).annotate({ "description": "Detailed compute object, if the object type is a compute." })), "target_volume_id": Schema.optionalKey(Schema.String.annotate({ "description": "For some events, the ID of the target volume.", "examples": ["01d06d30-c8e9-414b-b55f-8a2e2f95a0f2"] })), "target_volume": Schema.optionalKey(Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "examples": ["81153282-2d53-481e-b401-bd4191bc5ebc"] }), "name": Schema.String.annotate({ "examples": ["volume-1"] }), "created_at": Schema.String.annotate({ "examples": ["2026-03-17T14:15:52.872Z"] }), "gb": Schema.Number.annotate({ "examples": [100] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "is_shared_fs": Schema.Boolean.annotate({ "examples": [false] }), "template_type": Schema.Literals(["HDD", "NVMe", "HDD_Shared", "NVMe_Shared", "NVMe_Local_Storage", "NVMe_Shared_Cluster", "NVMe_OS_Cluster"]).annotate({ "examples": ["NVMe"] }), "location_code": Schema.String.annotate({ "examples": ["FIN-01"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "description": "Associated target volume object" })), "target_compute_id": Schema.optionalKey(Schema.String.annotate({ "description": "For some events, the ID of the target compute.", "examples": ["0b8c25f3-d691-4002-982c-a31af9438ee3"] })), "target_compute": Schema.optionalKey(Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "examples": ["ba8916d3-e0cb-4a8f-ae1c-cfad6b3494cb"] }), "hostname": Schema.String.annotate({ "examples": ["example-fin-01"] }), "compute_type": Schema.String.annotate({ "examples": ["4A100.88V"] }), "is_cluster": Schema.Boolean.annotate({ "examples": [false] }), "ip": Schema.optionalKey(Schema.String.annotate({ "examples": ["1.2.3.4"] })), "os_volume_id": Schema.optionalKey(Schema.String.annotate({ "examples": ["49648cb7-c2a6-412a-a606-d23773dc89ae"] })), "location_code": Schema.optionalKey(Schema.String.annotate({ "examples": ["FIN-01"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "description": "Associated target compute object" })), "source_volume_id": Schema.optionalKey(Schema.String.annotate({ "description": "For some events, the ID of the source volume.", "examples": ["a165b906-3a64-4c16-9711-bd6345a27ae2"] })), "source_volume": Schema.optionalKey(Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "examples": ["81153282-2d53-481e-b401-bd4191bc5ebc"] }), "name": Schema.String.annotate({ "examples": ["volume-1"] }), "created_at": Schema.String.annotate({ "examples": ["2026-03-17T14:15:52.872Z"] }), "gb": Schema.Number.annotate({ "examples": [100] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "is_shared_fs": Schema.Boolean.annotate({ "examples": [false] }), "template_type": Schema.Literals(["HDD", "NVMe", "HDD_Shared", "NVMe_Shared", "NVMe_Local_Storage", "NVMe_Shared_Cluster", "NVMe_OS_Cluster"]).annotate({ "examples": ["NVMe"] }), "location_code": Schema.String.annotate({ "examples": ["FIN-01"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "description": "Associated source volume object" })), "source_compute_id": Schema.optionalKey(Schema.String.annotate({ "description": "For some events, the ID of the source compute.", "examples": ["770d6819-0e34-4c69-ba27-7e3ea08dcd84"] })), "source_compute": Schema.optionalKey(Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "examples": ["ba8916d3-e0cb-4a8f-ae1c-cfad6b3494cb"] }), "hostname": Schema.String.annotate({ "examples": ["example-fin-01"] }), "compute_type": Schema.String.annotate({ "examples": ["4A100.88V"] }), "is_cluster": Schema.Boolean.annotate({ "examples": [false] }), "ip": Schema.optionalKey(Schema.String.annotate({ "examples": ["1.2.3.4"] })), "os_volume_id": Schema.optionalKey(Schema.String.annotate({ "examples": ["49648cb7-c2a6-412a-a606-d23773dc89ae"] })), "location_code": Schema.optionalKey(Schema.String.annotate({ "examples": ["FIN-01"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "description": "Associated source compute object" })), "properties": Schema.optionalKey(Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "Additional properties of the event.", "examples": [{ "delete_reason": "evicted_by_on_demand" }] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetActivityJournalResponseDto" })
+export type GetVolumePublicResponseDto = { readonly "id": string, readonly "instance_id": string, readonly "instances": ReadonlyArray<string>, readonly "name": string, readonly "created_at": string, readonly "created_by_user_id"?: string, readonly "status": "ordered" | "attached" | "attaching" | "detached" | "deleted" | "cloning" | "detaching" | "deleting" | "restoring" | "created" | "exported" | "canceled" | "canceling", readonly "size": number, readonly "is_os_volume": boolean, readonly "target": string, readonly "type": "HDD" | "NVMe" | "HDD_Shared" | "NVMe_Shared" | "NVMe_Local_Storage" | "NVMe_Shared_Cluster" | "NVMe_OS_Cluster", readonly "location": string, readonly "ssh_key_ids": ReadonlyArray<string>, readonly "pseudo_path": string, readonly "create_directory_command": string, readonly "mount_command": string, readonly "filesystem_to_fstab_command": string, readonly "contract": string, readonly "base_hourly_cost": number, readonly "monthly_price": number, readonly "currency": "usd" | "eur", readonly "long_term": { readonly [x: string]: Schema.Json }, readonly "tags": ReadonlyArray<TagResponseDto> } & { readonly [x: string]: Schema.Json }
+export const GetVolumePublicResponseDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Volume ID", "examples": ["95f99e2d-596e-41d6-be07-5f3df6ebe7b4"] }), "instance_id": Schema.String.annotate({ "description": "Instance ID", "examples": ["2cba5fac-a750-4cdf-8600-9e30874b121b"] }), "instances": Schema.Array(Schema.String).annotate({ "description": "Instance info the volume is attached to" }), "name": Schema.String.annotate({ "description": "Volume name", "examples": ["OS-NVMe-84Ca37Jf"] }), "created_at": Schema.String.annotate({ "description": "Volume creation date", "examples": ["2024-07-08T19:19:54.247Z"] }), "created_by_user_id": Schema.optionalKey(Schema.String.annotate({ "examples": ["7dfc2631-0158-4f74-93f6-6b46dcb90fef"] })), "status": Schema.Literals(["ordered", "attached", "attaching", "detached", "deleted", "cloning", "detaching", "deleting", "restoring", "created", "exported", "canceled", "canceling"]).annotate({ "description": "Volume status", "examples": ["attached"] }), "size": Schema.Number.annotate({ "description": "Volume size in GB", "examples": [100] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "is_os_volume": Schema.Boolean.annotate({ "description": "Is OS volume", "examples": [true] }), "target": Schema.String.annotate({ "description": "Volume target", "examples": ["vda"] }), "type": Schema.Literals(["HDD", "NVMe", "HDD_Shared", "NVMe_Shared", "NVMe_Local_Storage", "NVMe_Shared_Cluster", "NVMe_OS_Cluster"]).annotate({ "description": "Volume type", "examples": ["NVMe"] }), "location": Schema.String.annotate({ "description": "Volume location", "examples": ["FIN-01"] }), "ssh_key_ids": Schema.Array(Schema.String).annotate({ "description": "Array of SSH key IDs that are linked to the volume if it is an OS volume", "examples": [["18972724-654a-4b1f-b566-2628edf3f3b3"]] }), "pseudo_path": Schema.String.annotate({ "description": "Volume pseudo path. Unique identifier for your filesystem", "examples": ["volume-84Ca37Jf"] }), "create_directory_command": Schema.String.annotate({ "description": "Create directory command", "examples": ["mkdir -p /mnt/volume"] }), "mount_command": Schema.String.annotate({ "description": "Mount command", "examples": ["mount -t nfs -o nconnect=16 nfs.fin-01.datacrunch.io:volume-88eb67d0 /mnt/volume"] }), "filesystem_to_fstab_command": Schema.String.annotate({ "description": "Filesystem to fstab command", "examples": ["grep -qxF 'nfs.fin-01.datacrunch.io:volume-88eb67d0 /mnt/volume nfs defaults 0 0' /etc/fstab || echo 'nfs.fin-01.datacrunch.io:volume-88eb67d0 /mnt/volume nfs defaults 0 0' | sudo tee -a /etc/fstab"] }), "contract": Schema.String.annotate({ "description": "Volume contract type", "examples": ["LONG_TERM", "PAY_AS_YOU_GO"] }), "base_hourly_cost": Schema.Number.annotate({ "description": "Volume base hourly cost", "examples": [0.0273972602739726] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "monthly_price": Schema.Number.annotate({ "description": "Volume monthly price", "examples": [20] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "currency": Schema.Literals(["usd", "eur"]).annotate({ "description": "Volume currency", "examples": ["eur"] }), "long_term": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "Long term contract details", "examples": [{ "end_date": "2025-01-08T19:34:16.663Z", "long_term_period": "3 months", "discount_percentage": 14, "auto_rental_extension": false, "next_period_price": 49.93356, "current_period_price": 49.93356 }] }), "tags": Schema.Array(TagResponseDto).annotate({ "examples": [[{ "id": "tag_0aB1cD2eF3gH4iJ5kL6mN7", "key": "environment", "value": "production" }]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetVolumePublicResponseDto" })
+export type GetVolumeInTrashPublicResponseDto = { readonly "id": string, readonly "instance_id": string, readonly "instances": ReadonlyArray<string>, readonly "name": string, readonly "created_at": string, readonly "status": "ordered" | "attached" | "attaching" | "detached" | "deleted" | "cloning" | "detaching" | "deleting" | "restoring" | "created" | "exported" | "canceled" | "canceling", readonly "size": number, readonly "is_os_volume": boolean, readonly "target": string, readonly "type": "HDD" | "NVMe" | "HDD_Shared" | "NVMe_Shared" | "NVMe_Local_Storage" | "NVMe_Shared_Cluster" | "NVMe_OS_Cluster", readonly "location": string, readonly "ssh_key_ids": ReadonlyArray<string>, readonly "contract": string, readonly "base_hourly_cost": number, readonly "monthly_price": number, readonly "currency": "usd" | "eur", readonly "tags": ReadonlyArray<TagResponseDto>, readonly "deleted_at": string, readonly "is_permanently_deleted": boolean } & { readonly [x: string]: Schema.Json }
+export const GetVolumeInTrashPublicResponseDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Volume ID", "examples": ["95f99e2d-596e-41d6-be07-5f3df6ebe7b4"] }), "instance_id": Schema.String.annotate({ "description": "Instance ID", "examples": ["2cba5fac-a750-4cdf-8600-9e30874b121b"] }), "instances": Schema.Array(Schema.String).annotate({ "description": "Instance info the volume is attached to" }), "name": Schema.String.annotate({ "description": "Volume name", "examples": ["OS-NVMe-84Ca37Jf"] }), "created_at": Schema.String.annotate({ "description": "Volume creation date", "examples": ["2024-07-08T19:19:54.247Z"] }), "status": Schema.Literals(["ordered", "attached", "attaching", "detached", "deleted", "cloning", "detaching", "deleting", "restoring", "created", "exported", "canceled", "canceling"]).annotate({ "description": "Volume status", "examples": ["attached"] }), "size": Schema.Number.annotate({ "description": "Volume size in GB", "examples": [100] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "is_os_volume": Schema.Boolean.annotate({ "description": "Is OS volume", "examples": [true] }), "target": Schema.String.annotate({ "description": "Volume target", "examples": ["vda"] }), "type": Schema.Literals(["HDD", "NVMe", "HDD_Shared", "NVMe_Shared", "NVMe_Local_Storage", "NVMe_Shared_Cluster", "NVMe_OS_Cluster"]).annotate({ "description": "Volume type", "examples": ["NVMe"] }), "location": Schema.String.annotate({ "description": "Volume location", "examples": ["FIN-01"] }), "ssh_key_ids": Schema.Array(Schema.String).annotate({ "description": "Array of SSH key IDs that are linked to the volume if it is an OS volume", "examples": [["18972724-654a-4b1f-b566-2628edf3f3b3"]] }), "contract": Schema.String.annotate({ "description": "Volume contract type", "examples": ["LONG_TERM", "PAY_AS_YOU_GO"] }), "base_hourly_cost": Schema.Number.annotate({ "description": "Volume base hourly cost", "examples": [0.0273972602739726] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "monthly_price": Schema.Number.annotate({ "description": "Volume monthly price", "examples": [20] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "currency": Schema.Literals(["usd", "eur"]).annotate({ "description": "Volume currency", "examples": ["eur"] }), "tags": Schema.Array(TagResponseDto).annotate({ "examples": [[{ "id": "tag_0aB1cD2eF3gH4iJ5kL6mN7", "key": "environment", "value": "production" }]] }), "deleted_at": Schema.String.annotate({ "description": "Volume deletion date", "examples": ["2025-01-10T11:35:47.633Z"] }), "is_permanently_deleted": Schema.Boolean.annotate({ "description": "Is volume permanently deleted", "examples": [false] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetVolumeInTrashPublicResponseDto" })
+export type GetInstanceResponsePublicApiDto = { readonly "id": string, readonly "ip": string, readonly "status": "running" | "provisioning" | "offline" | "discontinued" | "unknown" | "ordered" | "notfound" | "new" | "error" | "deleting" | "validating" | "no_capacity" | "installation_failed", readonly "created_at": string, readonly "created_by_user_id"?: string, readonly "cpu": { readonly [x: string]: Schema.Json }, readonly "gpu": { readonly [x: string]: Schema.Json }, readonly "gpu_memory": { readonly [x: string]: Schema.Json }, readonly "memory": { readonly [x: string]: Schema.Json }, readonly "storage": { readonly [x: string]: Schema.Json }, readonly "hostname": string, readonly "description": string, readonly "tags": ReadonlyArray<TagResponseDto>, readonly "location": string, readonly "price_per_hour": number, readonly "is_spot": boolean, readonly "instance_type": string, readonly "image": string, readonly "os_name": string, readonly "startup_script_id": string, readonly "ssh_key_ids": ReadonlyArray<string>, readonly "os_volume_id": string, readonly "jupyter_token": string, readonly "contract": "LONG_TERM" | "PAY_AS_YOU_GO" | "SPOT", readonly "pricing": "DYNAMIC_PRICE" | "FIXED_PRICE", readonly "volume_ids": ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const GetInstanceResponsePublicApiDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "examples": ["8472bacf-875d-4e86-ad31-4a5d2dcd5f4d"] }), "ip": Schema.String.annotate({ "description": "Public address; `null` when the instance is not reachable from the internet", "examples": ["1.2.3.4"] }), "status": Schema.Literals(["running", "provisioning", "offline", "discontinued", "unknown", "ordered", "notfound", "new", "error", "deleting", "validating", "no_capacity", "installation_failed"]).annotate({ "examples": ["running"] }), "created_at": Schema.String.annotate({ "examples": ["2023-07-15T14:10:26.654Z"] }), "created_by_user_id": Schema.optionalKey(Schema.String.annotate({ "examples": ["7dfc2631-0158-4f74-93f6-6b46dcb90fef"] })), "cpu": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "examples": [{ "description": "176 CPU", "number_of_cores": 176, "model": "AMD Genoa" }] }), "gpu": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "examples": [{ "description": "8x A100", "number_of_gpus": 8 }] }), "gpu_memory": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "examples": [{ "description": "80GB GPU RAM", "size_in_gigabytes": 80 }] }), "memory": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "examples": [{ "description": "640GB RAM", "size_in_gigabytes": 640 }] }), "storage": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "examples": [{ "description": "dynamic" }] }), "hostname": Schema.String.annotate({ "examples": ["hazy-star-swims-fin-01"] }), "description": Schema.String.annotate({ "description": "Instance description; an empty string when none was supplied.", "examples": ["ubuntu-22-04-cuda-12-0-docker-fin-01"] }), "tags": Schema.Array(TagResponseDto).annotate({ "examples": [[{ "id": "tag_0aB1cD2eF3gH4iJ5kL6mN7", "key": "environment", "value": "production" }]] }), "location": Schema.String.annotate({ "examples": ["FIN-01"] }), "price_per_hour": Schema.Number.annotate({ "examples": [2.481] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "is_spot": Schema.Boolean.annotate({ "examples": [false] }), "instance_type": Schema.String.annotate({ "examples": ["8A100.176V"] }), "image": Schema.String.annotate({ "examples": ["ubuntu-22-04-cuda-12-0-docker"] }), "os_name": Schema.String.annotate({ "examples": ["Ubuntu 22.04"] }), "startup_script_id": Schema.String.annotate({ "examples": ["95cec4c3-af69-42eb-a790-fcacebfdfcea"] }), "ssh_key_ids": Schema.Array(Schema.String).annotate({ "examples": [["dd50b622-1c36-48c2-a485-f4d4937a3ea1"]] }), "os_volume_id": Schema.String.annotate({ "examples": ["95cec4c3-af69-42eb-a790-fcacebfdfcea"] }), "jupyter_token": Schema.String.annotate({ "examples": ["b9e6d8517db3a722ccfb309ca599a35f"] }), "contract": Schema.Literals(["LONG_TERM", "PAY_AS_YOU_GO", "SPOT"]).annotate({ "examples": ["PAY_AS_YOU_GO"] }), "pricing": Schema.Literals(["DYNAMIC_PRICE", "FIXED_PRICE"]).annotate({ "examples": ["FIXED_PRICE"] }), "volume_ids": Schema.Array(Schema.String).annotate({ "examples": [["95cec4c3-af69-42eb-a790-fcacebfdfcea", "dd50b622-1c36-48c2-a485-f4d4937a3ea1"]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetInstanceResponsePublicApiDto" })
+export type GetClusterResponsePublicApiDto = { readonly "id": string, readonly "ip": string, readonly "status": "running" | "provisioning" | "offline" | "discontinued" | "unknown" | "ordered" | "notfound" | "new" | "error" | "deleting" | "validating" | "no_capacity" | "installation_failed", readonly "created_at": string, readonly "created_by_user_id"?: string, readonly "cpu": { readonly [x: string]: Schema.Json }, readonly "gpu": { readonly [x: string]: Schema.Json }, readonly "gpu_memory": { readonly [x: string]: Schema.Json }, readonly "memory": { readonly [x: string]: Schema.Json }, readonly "hostname": string, readonly "description": string, readonly "tags": ReadonlyArray<TagResponseDto>, readonly "location": string, readonly "price_per_hour": number, readonly "cluster_type": string, readonly "image": string, readonly "os_name": string, readonly "startup_script_id"?: string, readonly "ssh_key_ids": ReadonlyArray<string>, readonly "contract": "LONG_TERM" | "PAY_AS_YOU_GO", readonly "auto_rental_extension"?: boolean, readonly "turn_to_pay_as_you_go"?: boolean, readonly "extension_settings"?: "auto_renew" | "pay_as_you_go" | "end_contract", readonly "long_term_period"?: string, readonly "worker_nodes"?: ReadonlyArray<string>, readonly "shared_volumes"?: ReadonlyArray<string> } & { readonly [x: string]: Schema.Json }
+export const GetClusterResponsePublicApiDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "examples": ["466fdcab-34ab-4053-85fd-a7bd7372816d"] }), "ip": Schema.String.annotate({ "description": "Jump host IP address", "examples": ["1.2.3.4"] }), "status": Schema.Literals(["running", "provisioning", "offline", "discontinued", "unknown", "ordered", "notfound", "new", "error", "deleting", "validating", "no_capacity", "installation_failed"]).annotate({ "examples": ["running"] }), "created_at": Schema.String.annotate({ "examples": ["2023-07-15T14:10:26.654Z"] }), "created_by_user_id": Schema.optionalKey(Schema.String.annotate({ "examples": ["7dfc2631-0158-4f74-93f6-6b46dcb90fef"] })), "cpu": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "examples": [{ "description": "176 CPU", "number_of_cores": 176, "model": "AMD Genoa" }] }), "gpu": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "examples": [{ "description": "8x A100", "number_of_gpus": 8 }] }), "gpu_memory": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "examples": [{ "description": "80GB GPU RAM", "size_in_gigabytes": 80 }] }), "memory": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "examples": [{ "description": "640GB RAM", "size_in_gigabytes": 640 }] }), "hostname": Schema.String.annotate({ "examples": ["hazy-star-swims-fin-01"] }), "description": Schema.String.annotate({ "description": "Cluster description; an empty string when none was supplied.", "examples": ["ubuntu-22-04-cuda-12-0-docker-fin-01"] }), "tags": Schema.Array(TagResponseDto).annotate({ "examples": [[{ "id": "tag_0aB1cD2eF3gH4iJ5kL6mN7", "key": "environment", "value": "production" }]] }), "location": Schema.String.annotate({ "examples": ["FIN-01"] }), "price_per_hour": Schema.Number.annotate({ "examples": [2.481] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "cluster_type": Schema.String.annotate({ "examples": ["16H200"] }), "image": Schema.String.annotate({ "description": "OS image used to deploy the cluster nodes", "examples": ["ubuntu-22-04-cuda-12-0-docker"] }), "os_name": Schema.String.annotate({ "examples": ["Ubuntu 22.04"] }), "startup_script_id": Schema.optionalKey(Schema.String.annotate({ "examples": ["95cec4c3-af69-42eb-a790-fcacebfdfcea"] })), "ssh_key_ids": Schema.Array(Schema.String).annotate({ "description": "SSH key IDs used to access the cluster jump host", "examples": [["dd50b622-1c36-48c2-a485-f4d4937a3ea1"]] }), "contract": Schema.Literals(["LONG_TERM", "PAY_AS_YOU_GO"]).annotate({ "description": "Contract type used for this cluster", "examples": ["LONG_TERM"] }), "auto_rental_extension": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Deprecated: use extension_settings instead.", "examples": [false] })), "turn_to_pay_as_you_go": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Deprecated: use extension_settings instead.", "examples": [false] })), "extension_settings": Schema.optionalKey(Schema.Literals(["auto_renew", "pay_as_you_go", "end_contract"]).annotate({ "description": "Extension settings for long-term contracts" })), "long_term_period": Schema.optionalKey(Schema.String.annotate({ "description": "Long-term rental period for this cluster, e.g. 1 week etc.", "examples": ["1 week"] })), "worker_nodes": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Worker nodes of this cluster. You can access them from the jump host by executing `ssh <hostname>`" })), "shared_volumes": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Shared volumes attached to this cluster. There is always one shared volume mounted as /home." })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetClusterResponsePublicApiDto" })
+export type CreateVolumePublicDto = { readonly "type": "HDD" | "NVMe" | "HDD_Shared" | "NVMe_Shared" | "NVMe_Local_Storage" | "NVMe_Shared_Cluster" | "NVMe_OS_Cluster", readonly "location_code": string, readonly "size": number, readonly "instance_id"?: string, readonly "instance_ids"?: ReadonlyArray<string>, readonly "name": string, readonly "tags"?: ReadonlyArray<TagDto> } & { readonly [x: string]: Schema.Json }
+export const CreateVolumePublicDto = Schema.StructWithRest(Schema.Struct({ "type": Schema.Literals(["HDD", "NVMe", "HDD_Shared", "NVMe_Shared", "NVMe_Local_Storage", "NVMe_Shared_Cluster", "NVMe_OS_Cluster"]).annotate({ "description": "Volume type", "examples": ["NVMe"] }), "location_code": Schema.String.annotate({ "description": "Location code", "examples": ["FIN-01"] }), "size": Schema.Number.annotate({ "description": "Volume size in GB", "examples": [50] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "instance_id": Schema.optionalKey(Schema.String.annotate({ "description": "Instance ID to attach the volume to", "examples": ["a874a96f-a065-4231-ad27-8713e25505cc"] })), "instance_ids": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Array of instance IDs to attach the volume to", "examples": [["9728fa10-4a6a-4a88-8dc4-02ca67863a73", "671d9a57-30b5-4235-94b2-484c79aaefd5"]] })), "name": Schema.String.annotate({ "description": "Volume name", "examples": ["my-volume"] }), "tags": Schema.optionalKey(Schema.Array(TagDto).annotate({ "description": "Key-value tags for the new volume. Maximum 10. Omit `value` for a freeform tag. Keys are lowercased.", "examples": [[{ "key": "environment", "value": "production" }]] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateVolumePublicDto" })
+export type OsVolumeDto = { readonly "name": string, readonly "size": number, readonly "on_spot_discontinue"?: "keep_detached" | "move_to_trash" | "delete_permanently", readonly "tags"?: ReadonlyArray<TagDto> } & { readonly [x: string]: Schema.Json }
+export const OsVolumeDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "examples": ["custom-os-volume-name"] }), "size": Schema.Number.check(Schema.isFinite().annotate({ "expected": "a finite number" })), "on_spot_discontinue": Schema.optionalKey(Schema.Literals(["keep_detached", "move_to_trash", "delete_permanently"]).annotate({ "description": "Optional, by default, nothing is deleted. Should we automatically delete, if instance is deleted because of spot?\nAllowed values:\n\n * `keep_detached` (default behavior, volume will be detached),\n * `move_to_trash` (will be deleted after 96 hours and counts towards the storage volume quota),\n * `delete_permanently` (will be deleted immediately)." })), "tags": Schema.optionalKey(Schema.Array(TagDto).annotate({ "description": "Key-value tags for the new volume. Maximum 10. Omit `value` for a freeform tag. Keys are lowercased.", "examples": [[{ "key": "environment", "value": "production" }]] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "OsVolumeDto" })
+export type VolumeDto = { readonly "name": string, readonly "size": number, readonly "on_spot_discontinue"?: "keep_detached" | "move_to_trash" | "delete_permanently", readonly "tags"?: ReadonlyArray<TagDto>, readonly "type": "HDD" | "NVMe" | "HDD_Shared" | "NVMe_Shared" | "NVMe_Local_Storage" | "NVMe_Shared_Cluster" | "NVMe_OS_Cluster" } & { readonly [x: string]: Schema.Json }
+export const VolumeDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "examples": ["custom-os-volume-name"] }), "size": Schema.Number.check(Schema.isFinite().annotate({ "expected": "a finite number" })), "on_spot_discontinue": Schema.optionalKey(Schema.Literals(["keep_detached", "move_to_trash", "delete_permanently"]).annotate({ "description": "Optional, by default, nothing is deleted. Should we automatically delete, if instance is deleted because of spot?\nAllowed values:\n\n * `keep_detached` (default behavior, volume will be detached),\n * `move_to_trash` (will be deleted after 96 hours and counts towards the storage volume quota),\n * `delete_permanently` (will be deleted immediately)." })), "tags": Schema.optionalKey(Schema.Array(TagDto).annotate({ "description": "Key-value tags for the new volume. Maximum 10. Omit `value` for a freeform tag. Keys are lowercased.", "examples": [[{ "key": "environment", "value": "production" }]] })), "type": Schema.Literals(["HDD", "NVMe", "HDD_Shared", "NVMe_Shared", "NVMe_Local_Storage", "NVMe_Shared_Cluster", "NVMe_OS_Cluster"]) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "VolumeDto" })
+export type PerformClusterActionsBulkDto = { readonly "actions": ReadonlyArray<PerformClusterActionPublicDto> } & { readonly [x: string]: Schema.Json }
+export const PerformClusterActionsBulkDto = Schema.StructWithRest(Schema.Struct({ "actions": Schema.Array(PerformClusterActionPublicDto).annotate({ "description": "Array of cluster actions, one per each cluster", "examples": [[{ "action": "discontinue", "id": "ebae41a6-b3be-45b3-befc-00dcb6fee0ac" }, { "action": "discontinue", "id": "a56acf2a-7e51-4f00-807d-1ccf1733e786" }]] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PerformClusterActionsBulkDto" })
+export type DeployClusterPublicDto = { readonly "cluster_type": string, readonly "image": string, readonly "ssh_key_ids"?: string | ReadonlyArray<string>, readonly "startup_script_id"?: string, readonly "hostname": string, readonly "description"?: string, readonly "tags"?: ReadonlyArray<TagDto>, readonly "location_code": string, readonly "contract"?: "PAY_AS_YOU_GO" | "LONG_TERM", readonly "extension_settings"?: "auto_renew" | "pay_as_you_go" | "end_contract", readonly "auto_rental_extension"?: boolean, readonly "turn_to_pay_as_you_go"?: boolean, readonly "shared_volume": SharedVolumeDto, readonly "existing_volumes"?: ReadonlyArray<ExistingSharedVolumeDto> } & { readonly [x: string]: Schema.Json }
+export const DeployClusterPublicDto = Schema.StructWithRest(Schema.Struct({ "cluster_type": Schema.String.annotate({ "description": "Cluster instance type. Can be listed using the `GET /v1/cluster-types` endpoint.", "examples": ["16H200"] }), "image": Schema.String.annotate({ "description": "OS image type or UUID for the cluster. For a list of advertised images, check `GET /v1/images/cluster`. Hidden images can also be deployed directly. The image must be enabled or explicitly enabled for the project owner and compatible with the cluster type.", "examples": ["ubuntu-22.04-cuda-12.4-cluster", "123b7077-6509-46fd-a8b1-8165014d6041"] }), "ssh_key_ids": Schema.optionalKey(Schema.Union([Schema.String.annotate({ "format": "uuid" }), Schema.Array(Schema.String.annotate({ "format": "uuid" }))], { mode: "oneOf" }).annotate({ "description": "SSH key IDs to attach to the cluster. Required if image is an OS image type.", "examples": [["972cb9c7-db59-473d-9214-8b31bbc8e0a0"]] })), "startup_script_id": Schema.optionalKey(Schema.String.annotate({ "description": "Startup script ID to run on cluster initialization", "examples": ["7dc4d396-37ec-4f95-af4e-7019b881b3ff"] })), "hostname": Schema.String.annotate({ "examples": ["dark-vm-shrinks-fin-01"] }), "description": Schema.optionalKey(Schema.String.annotate({ "description": "Optional cluster description. Omit or pass null to use an empty string.", "examples": ["ubuntu-22-04-cuda-12-4-16b200-fin-01"] })), "tags": Schema.optionalKey(Schema.Array(TagDto).annotate({ "description": "Key-value tags for the new cluster. Maximum 10. Omit `value` for a freeform tag. Keys are lowercased.", "examples": [[{ "key": "environment", "value": "production" }, { "key": "benchmark" }]] })), "location_code": Schema.String.annotate({ "description": "Location code for the cluster and its shared volume", "examples": ["FIN-01"] }), "contract": Schema.optionalKey(Schema.Literals(["PAY_AS_YOU_GO", "LONG_TERM"]).annotate({ "description": "Contract type. For clusters, only PAY_AS_YOU_GO currently supported.", "examples": ["PAY_AS_YOU_GO"] })), "extension_settings": Schema.optionalKey(Schema.Literals(["auto_renew", "pay_as_you_go", "end_contract"]).annotate({ "description": "Extension settings for long-term contracts. Takes priority over auto_rental_extension and turn_to_pay_as_you_go." })), "auto_rental_extension": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Deprecated: use extension_settings instead. Enable automatic rental extension for long-term contracts." })), "turn_to_pay_as_you_go": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Deprecated: use extension_settings instead. Automatically convert to pay-as-you-go after the long-term period ends." })), "shared_volume": Schema.suspend((): Schema.Codec<SharedVolumeDto> => SharedVolumeDto).annotate({ "description": "Shared cluster volume (SFS) specification. Clusters have one shared volume mounted as /home. The OS volume is ephemeral and created automatically by the system. ", "examples": [{ "name": "cluster-volume-name", "size": 30000 }] }), "existing_volumes": Schema.optionalKey(Schema.Array(ExistingSharedVolumeDto).annotate({ "description": "Existing shared volumes to attach to the cluster. Should be in the same location as the cluster. Must be previously created and attached to the cluster.", "examples": [[]] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DeployClusterPublicDto" })
+export type InstanceGroupTemplateDto = { readonly "image": string, readonly "os_volume"?: InstanceGroupOsVolumeDto, readonly "ssh_key_ids"?: ReadonlyArray<string>, readonly "startup_script_id"?: string } & { readonly [x: string]: Schema.Json }
+export const InstanceGroupTemplateDto = Schema.StructWithRest(Schema.Struct({ "image": Schema.String.annotate({ "examples": ["ubuntu-24.04-cuda-12.8-docker"] }), "os_volume": Schema.optionalKey(InstanceGroupOsVolumeDto), "ssh_key_ids": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Default SSH keys for instances created from this group." })), "startup_script_id": Schema.optionalKey(Schema.String.annotate({ "description": "Default startup script for instances created from this group." })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "InstanceGroupTemplateDto" })
+export type UpdateInstanceGroupDto = { readonly "name"?: string, readonly "description"?: string, readonly "template"?: MutableInstanceGroupTemplateDto } & { readonly [x: string]: Schema.Json }
+export const UpdateInstanceGroupDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.optionalKey(Schema.String), "description": Schema.optionalKey(Schema.String), "template": Schema.optionalKey(Schema.suspend((): Schema.Codec<MutableInstanceGroupTemplateDto> => MutableInstanceGroupTemplateDto).annotate({ "description": "Mutable template defaults." })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "UpdateInstanceGroupDto" })
+export type ScaledJobShortInfoResponseDto = { readonly "name": string, readonly "created_at": string, readonly "created_by_user_id": string, readonly "compute": ComputeResource } & { readonly [x: string]: Schema.Json }
+export const ScaledJobShortInfoResponseDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Job deployment name", "examples": ["flux-training"] }), "created_at": Schema.String.annotate({ "examples": ["2021-08-31T12:00:00.000Z"], "format": "date-time" }), "created_by_user_id": Schema.String.annotate({ "description": "ID of the user who created the job", "examples": ["0576ee4a-d45c-44b8-b2be-d8ad0347cb46"] }), "compute": Schema.suspend((): Schema.Codec<ComputeResource> => ComputeResource).annotate({ "description": "Compute resource details" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ScaledJobShortInfoResponseDto" })
+export type ContainerDeploymentTemplatePublicApiDto = { readonly "id": string, readonly "name": string, readonly "description": string, readonly "provider": string, readonly "engine": string, readonly "model_repository": string, readonly "parameters": string, readonly "context_length": number, readonly "input_modalities": ReadonlyArray<string>, readonly "output_modalities": ReadonlyArray<string>, readonly "tasks": ReadonlyArray<string>, readonly "requires_hugging_face_token": boolean, readonly "min_vram_gb": number, readonly "recommended_compute": ComputeResource } & { readonly [x: string]: Schema.Json }
+export const ContainerDeploymentTemplatePublicApiDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Stable, URL-safe template identifier used in template paths", "examples": ["qwen3-5-9b"] }), "name": Schema.String.annotate({ "description": "Human-readable name of the model", "examples": ["Qwen3.5 9B"] }), "description": Schema.String.annotate({ "description": "Description of the model", "examples": ["Dense multimodal model with gated delta networks hybrid attention and 262K context. Single-GPU serving."] }), "provider": Schema.String.annotate({ "description": "Provider of the model", "examples": ["Qwen"] }), "engine": Schema.String.annotate({ "description": "Serving engine used by the template", "examples": ["vllm"] }), "model_repository": Schema.String.annotate({ "description": "Hugging Face repository the default variant loads", "examples": ["Qwen/Qwen3.5-9B"] }), "parameters": Schema.String.annotate({ "description": "Parameter count of the model (display string)", "examples": ["9B"] }), "context_length": Schema.Number.annotate({ "description": "Maximum context length in tokens", "examples": [262144] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "input_modalities": Schema.Array(Schema.String).annotate({ "description": "Accepted input modalities", "examples": [["text", "image"]] }), "output_modalities": Schema.Array(Schema.String).annotate({ "description": "Produced output modalities", "examples": [["text"]] }), "tasks": Schema.Array(Schema.String).annotate({ "description": "Coarse task labels", "examples": [["text", "multimodal"]] }), "requires_hugging_face_token": Schema.Boolean.annotate({ "description": "Whether a Hugging Face token is required to deploy the model (gated checkpoint)", "examples": [false] }), "min_vram_gb": Schema.Number.annotate({ "description": "Minimum total GPU memory in GB for the default variant", "examples": [22] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "recommended_compute": Schema.suspend((): Schema.Codec<ComputeResource> => ComputeResource).annotate({ "description": "Smallest compute configuration currently offered that fits the default variant. Null when nothing offered fits" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerDeploymentTemplatePublicApiDto" })
+export type ContainerDeploymentTemplateVariantPublicApiDto = { readonly "id": string, readonly "precision": string, readonly "model_repository": string, readonly "min_vram_gb": number, readonly "is_default": boolean, readonly "description"?: string, readonly "recommended_compute": ComputeResource } & { readonly [x: string]: Schema.Json }
+export const ContainerDeploymentTemplateVariantPublicApiDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Variant identifier, passed as `variant` when deploying", "examples": ["fp8"] }), "precision": Schema.String.annotate({ "description": "Weight precision", "examples": ["fp8"] }), "model_repository": Schema.String.annotate({ "description": "Hugging Face repository this variant loads", "examples": ["Qwen/Qwen3.5-9B-FP8"] }), "min_vram_gb": Schema.Number.annotate({ "description": "Minimum total GPU memory in GB", "examples": [12] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "is_default": Schema.Boolean.annotate({ "description": "Whether this variant is used when no variant is given", "examples": [true] }), "description": Schema.optionalKey(Schema.String.annotate({ "description": "What sets this variant apart", "examples": ["FP8 weights and KV cache, fits a single 16 GB GPU"] })), "recommended_compute": Schema.suspend((): Schema.Codec<ComputeResource> => ComputeResource).annotate({ "description": "Smallest compute configuration currently offered that fits this variant. Null when nothing offered fits" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerDeploymentTemplateVariantPublicApiDto" })
+export type CreateScaledJobContainerRegistrySettings = { readonly "credentials"?: CreateScaledJobContainerRegistryCredentialsDto } & { readonly [x: string]: Schema.Json }
+export const CreateScaledJobContainerRegistrySettings = Schema.StructWithRest(Schema.Struct({ "credentials": Schema.optionalKey(Schema.suspend((): Schema.Codec<CreateScaledJobContainerRegistryCredentialsDto> => CreateScaledJobContainerRegistryCredentialsDto).annotate({ "description": "Container registry credentials used for authorized access to private container registries. Currently, credentials must be created via the DataCrunch Cloud UI. Provide the name of the created credentials here." })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScaledJobContainerRegistrySettings" })
+export type CreateScaledJobContainerDto = { readonly "image": string, readonly "should_use_cached_image"?: boolean, readonly "exposed_port": number, readonly "healthcheck"?: CreateScaledJobContainerHealthcheckSettings, readonly "entrypoint_overrides"?: CreateScaledJobContainerEntrypointOverridesSettings, readonly "env"?: ReadonlyArray<CreateScaledJobContainerEnvVar>, readonly "volume_mounts"?: ReadonlyArray<CreateScaledJobContainerVolumeMount> } & { readonly [x: string]: Schema.Json }
+export const CreateScaledJobContainerDto = Schema.StructWithRest(Schema.Struct({ "image": Schema.String.annotate({ "description": "Image to be deployed in the container", "examples": ["registry-1.docker.io/chentex/random-logger:v1.0.1"] }), "should_use_cached_image": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Pull the image through the platform image cache. Applies only to public Docker Hub images. Has no effect for images from other registries, or when registry credentials are set. When the cache is used, registry credentials are not needed to avoid Docker Hub rate limits, because the cache pulls with a platform account. Without the cache, this does not apply.", "default": true, "examples": [true] })), "exposed_port": Schema.Number.annotate({ "description": "Port to be exposed by the container", "examples": [8080] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "healthcheck": Schema.optionalKey(Schema.suspend((): Schema.Codec<CreateScaledJobContainerHealthcheckSettings> => CreateScaledJobContainerHealthcheckSettings).annotate({ "description": "Healthcheck settings for the container" })), "entrypoint_overrides": Schema.optionalKey(Schema.suspend((): Schema.Codec<CreateScaledJobContainerEntrypointOverridesSettings> => CreateScaledJobContainerEntrypointOverridesSettings).annotate({ "description": "Entrypoint overrides settings for the container" })), "env": Schema.optionalKey(Schema.Array(CreateScaledJobContainerEnvVar).annotate({ "description": "Environment variables for the container" })), "volume_mounts": Schema.optionalKey(Schema.Array(CreateScaledJobContainerVolumeMount).annotate({ "description": "Volume mounts for the container" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScaledJobContainerDto" })
+export type PatchScaledJobContainerDto = { readonly "image"?: string, readonly "should_use_cached_image"?: boolean, readonly "exposed_port"?: number, readonly "healthcheck"?: CreateScaledJobContainerHealthcheckSettings, readonly "entrypoint_overrides"?: CreateScaledJobContainerEntrypointOverridesSettings, readonly "env"?: ReadonlyArray<CreateScaledJobContainerEnvVar>, readonly "volume_mounts"?: ReadonlyArray<CreateScaledJobContainerVolumeMount>, readonly "name": string } & { readonly [x: string]: Schema.Json }
+export const PatchScaledJobContainerDto = Schema.StructWithRest(Schema.Struct({ "image": Schema.optionalKey(Schema.String.annotate({ "description": "Image to be deployed in the container", "examples": ["registry-1.docker.io/chentex/random-logger:v1.0.1"] })), "should_use_cached_image": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Pull the image through the platform image cache. Applies only to public Docker Hub images. Has no effect for images from other registries, or when registry credentials are set. When the cache is used, registry credentials are not needed to avoid Docker Hub rate limits, because the cache pulls with a platform account. Without the cache, this does not apply. If `image` is not sent, the setting applies to the current image. If `image` is sent without this field, the current setting is kept.", "default": true, "examples": [true] })), "exposed_port": Schema.optionalKey(Schema.Number.annotate({ "description": "Port to be exposed by the container", "examples": [8080] }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "healthcheck": Schema.optionalKey(Schema.suspend((): Schema.Codec<CreateScaledJobContainerHealthcheckSettings> => CreateScaledJobContainerHealthcheckSettings).annotate({ "description": "Healthcheck settings for the container" })), "entrypoint_overrides": Schema.optionalKey(Schema.suspend((): Schema.Codec<CreateScaledJobContainerEntrypointOverridesSettings> => CreateScaledJobContainerEntrypointOverridesSettings).annotate({ "description": "Entrypoint overrides settings for the container" })), "env": Schema.optionalKey(Schema.Array(CreateScaledJobContainerEnvVar).annotate({ "description": "Environment variables for the container" })), "volume_mounts": Schema.optionalKey(Schema.Array(CreateScaledJobContainerVolumeMount).annotate({ "description": "Volume mounts for the container" })), "name": Schema.String.annotate({ "description": "Name of the container to update", "examples": ["video-generator-0"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PatchScaledJobContainerDto" })
+export type ContainerResponseDto = { readonly "name": string, readonly "image": ImageInfoResponseDto, readonly "exposed_port": number, readonly "healthcheck"?: HealthcheckSettingsResponseDto, readonly "entrypoint_overrides"?: EntrypointOverridesSettingsResponseDto, readonly "env": ReadonlyArray<EnvVarResponseDto>, readonly "volume_mounts": ReadonlyArray<VolumeMountResponseDto>, readonly "should_use_cached_image": boolean } & { readonly [x: string]: Schema.Json }
+export const ContainerResponseDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Container name", "examples": ["random-logger-0"] }), "image": Schema.suspend((): Schema.Codec<ImageInfoResponseDto> => ImageInfoResponseDto).annotate({ "description": "Image details" }), "exposed_port": Schema.Number.annotate({ "description": "Port to be exposed by the container", "examples": [8080] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "healthcheck": Schema.optionalKey(Schema.suspend((): Schema.Codec<HealthcheckSettingsResponseDto> => HealthcheckSettingsResponseDto).annotate({ "description": "Healthcheck settings for the container" })), "entrypoint_overrides": Schema.optionalKey(Schema.suspend((): Schema.Codec<EntrypointOverridesSettingsResponseDto> => EntrypointOverridesSettingsResponseDto).annotate({ "description": "Entrypoint overrides settings for the container" })), "env": Schema.Array(EnvVarResponseDto).annotate({ "description": "Environment variables for the container" }), "volume_mounts": Schema.Array(VolumeMountResponseDto).annotate({ "description": "Volume mounts for the container" }), "should_use_cached_image": Schema.Boolean.annotate({ "description": "The image cache setting of the container. The image is pulled through the cache only when this is true, the image is from Docker Hub, and no registry credentials are set.", "examples": [false] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerResponseDto" })
+export type ContainerRegistrySettingsResponseDto = { readonly "is_private": boolean, readonly "credentials": ContainerRegistryCredentialsResponseDto } & { readonly [x: string]: Schema.Json }
+export const ContainerRegistrySettingsResponseDto = Schema.StructWithRest(Schema.Struct({ "is_private": Schema.Boolean.annotate({ "description": "Privacy mode of the container registry - is it public or private", "examples": [true] }), "credentials": Schema.suspend((): Schema.Codec<ContainerRegistryCredentialsResponseDto> => ContainerRegistryCredentialsResponseDto).annotate({ "description": "Credential details for the registry if it is private. Required if privacy mode is private" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerRegistrySettingsResponseDto" })
+export type GetDeploymentEnvVariablesPublicApiResponseDto = { readonly "container_name": string, readonly "env": ReadonlyArray<EnvVarPublicApi> } & { readonly [x: string]: Schema.Json }
+export const GetDeploymentEnvVariablesPublicApiResponseDto = Schema.StructWithRest(Schema.Struct({ "container_name": Schema.String.annotate({ "description": "Container name", "examples": ["flux-0"] }), "env": Schema.Array(EnvVarPublicApi).annotate({ "description": "Environment variables for the container" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "GetDeploymentEnvVariablesPublicApiResponseDto" })
+export type CreateOrPatchEnvironmentVariablesDto = { readonly "container_name": string, readonly "env": ReadonlyArray<EnvVarPublicApi> } & { readonly [x: string]: Schema.Json }
+export const CreateOrPatchEnvironmentVariablesDto = Schema.StructWithRest(Schema.Struct({ "container_name": Schema.String.annotate({ "description": "Container name", "examples": ["flux-0"] }), "env": Schema.Array(EnvVarPublicApi).annotate({ "description": "Environment variables for the container" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateOrPatchEnvironmentVariablesDto" })
+export type ContainerPublicApiResponseDto = { readonly "should_use_cached_image"?: boolean, readonly "exposed_port": number, readonly "healthcheck"?: HealthcheckSettings, readonly "entrypoint_overrides"?: EntrypointOverridesSettings, readonly "env"?: ReadonlyArray<EnvVarPublicApi>, readonly "volume_mounts"?: ReadonlyArray<ScratchVolumeMountDto | SecretVolumeMountDto | SharedVolumeMountDto | MemoryVolumeMountDto>, readonly "image": { readonly [x: string]: Schema.Json }, readonly "name": string } & { readonly [x: string]: Schema.Json }
+export const ContainerPublicApiResponseDto = Schema.StructWithRest(Schema.Struct({ "should_use_cached_image": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Pull the image through the platform image cache. Applies only to public Docker Hub images. Has no effect for images from other registries, or when registry credentials are set. When the cache is used, registry credentials are not needed to avoid Docker Hub rate limits, because the cache pulls with a platform account. Without the cache, this does not apply.", "default": true, "examples": [true] })), "exposed_port": Schema.Number.annotate({ "description": "Port to be exposed by the container", "examples": [8080] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "healthcheck": Schema.optionalKey(Schema.suspend((): Schema.Codec<HealthcheckSettings> => HealthcheckSettings).annotate({ "description": "Healthcheck settings for the container" })), "entrypoint_overrides": Schema.optionalKey(Schema.suspend((): Schema.Codec<EntrypointOverridesSettings> => EntrypointOverridesSettings).annotate({ "description": "Entrypoint overrides settings for the container" })), "env": Schema.optionalKey(Schema.Array(EnvVarPublicApi).annotate({ "description": "Environment variables for the container" })), "volume_mounts": Schema.optionalKey(Schema.Array(Schema.Union([Schema.suspend((): Schema.Codec<ScratchVolumeMountDto> => ScratchVolumeMountDto).annotate({ "description": "Scratch volume mount" }), Schema.suspend((): Schema.Codec<SecretVolumeMountDto> => SecretVolumeMountDto).annotate({ "description": "Secret volume mount" }), Schema.suspend((): Schema.Codec<SharedVolumeMountDto> => SharedVolumeMountDto).annotate({ "description": "Shared filesystem volume mount" }), Schema.suspend((): Schema.Codec<MemoryVolumeMountDto> => MemoryVolumeMountDto).annotate({ "description": "Memory volume mount" })], { mode: "oneOf" })).annotate({ "description": "Volume mounts for the container" })), "image": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "Image details", "examples": [{ "image": "registry-1.docker.io/chentex/random-logger:v1.0.1", "last_updated_at": "2026-10-02T11:36:49.422Z" }] }), "name": Schema.String.annotate({ "description": "Container name", "examples": ["random-logger-0"] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerPublicApiResponseDto" })
+export type ContainerPublicApiDto = { readonly "image": string, readonly "should_use_cached_image"?: boolean, readonly "exposed_port": number, readonly "healthcheck"?: HealthcheckSettings, readonly "entrypoint_overrides"?: EntrypointOverridesSettings, readonly "env"?: ReadonlyArray<EnvVarPublicApi>, readonly "volume_mounts"?: ReadonlyArray<ScratchVolumeMountDto | SecretVolumeMountDto | SharedVolumeMountDto | MemoryVolumeMountDto> } & { readonly [x: string]: Schema.Json }
+export const ContainerPublicApiDto = Schema.StructWithRest(Schema.Struct({ "image": Schema.String.annotate({ "description": "Image to be deployed in the container", "examples": ["registry-1.docker.io/chentex/random-logger:v1.0.1"] }), "should_use_cached_image": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Pull the image through the platform image cache. Applies only to public Docker Hub images. Has no effect for images from other registries, or when registry credentials are set. When the cache is used, registry credentials are not needed to avoid Docker Hub rate limits, because the cache pulls with a platform account. Without the cache, this does not apply.", "default": true, "examples": [true] })), "exposed_port": Schema.Number.annotate({ "description": "Port to be exposed by the container", "examples": [8080] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "healthcheck": Schema.optionalKey(Schema.suspend((): Schema.Codec<HealthcheckSettings> => HealthcheckSettings).annotate({ "description": "Healthcheck settings for the container" })), "entrypoint_overrides": Schema.optionalKey(Schema.suspend((): Schema.Codec<EntrypointOverridesSettings> => EntrypointOverridesSettings).annotate({ "description": "Entrypoint overrides settings for the container" })), "env": Schema.optionalKey(Schema.Array(EnvVarPublicApi).annotate({ "description": "Environment variables for the container" })), "volume_mounts": Schema.optionalKey(Schema.Array(Schema.Union([Schema.suspend((): Schema.Codec<ScratchVolumeMountDto> => ScratchVolumeMountDto).annotate({ "description": "Scratch volume mount" }), Schema.suspend((): Schema.Codec<SecretVolumeMountDto> => SecretVolumeMountDto).annotate({ "description": "Secret volume mount" }), Schema.suspend((): Schema.Codec<SharedVolumeMountDto> => SharedVolumeMountDto).annotate({ "description": "Shared filesystem volume mount" }), Schema.suspend((): Schema.Codec<MemoryVolumeMountDto> => MemoryVolumeMountDto).annotate({ "description": "Memory volume mount" })], { mode: "oneOf" })).annotate({ "description": "Volume mounts for the container" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerPublicApiDto" })
+export type ContainerRegistrySettingsPublicApiDto = { readonly "is_private": boolean, readonly "credentials": ContainerRegistryCredentials } & { readonly [x: string]: Schema.Json }
+export const ContainerRegistrySettingsPublicApiDto = Schema.StructWithRest(Schema.Struct({ "is_private": Schema.Boolean.annotate({ "description": "Privacy mode of the container registry - is it public or private", "examples": [true] }), "credentials": Schema.suspend((): Schema.Codec<ContainerRegistryCredentials> => ContainerRegistryCredentials).annotate({ "description": "Credential details for the registry if it is private. Required if privacy mode is private" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerRegistrySettingsPublicApiDto" })
+export type ScalingTriggers = { readonly "queue_load": QueueLoadScalingTrigger, readonly "cpu_utilization"?: UtilizationScalingTrigger, readonly "gpu_utilization"?: UtilizationScalingTrigger } & { readonly [x: string]: Schema.Json }
+export const ScalingTriggers = Schema.StructWithRest(Schema.Struct({ "queue_load": Schema.suspend((): Schema.Codec<QueueLoadScalingTrigger> => QueueLoadScalingTrigger).annotate({ "description": "Scaling trigger based on queue load" }), "cpu_utilization": Schema.optionalKey(Schema.suspend((): Schema.Codec<UtilizationScalingTrigger> => UtilizationScalingTrigger).annotate({ "description": "Scaling trigger based on CPU utilization by percentage" })), "gpu_utilization": Schema.optionalKey(Schema.suspend((): Schema.Codec<UtilizationScalingTrigger> => UtilizationScalingTrigger).annotate({ "description": "Scaling trigger based on GPU utilization by percentage" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ScalingTriggers" })
+export type PatchScalingTriggers = { readonly "queue_load"?: QueueLoadScalingTrigger, readonly "cpu_utilization"?: UtilizationScalingTrigger, readonly "gpu_utilization"?: UtilizationScalingTrigger } & { readonly [x: string]: Schema.Json }
+export const PatchScalingTriggers = Schema.StructWithRest(Schema.Struct({ "queue_load": Schema.optionalKey(Schema.suspend((): Schema.Codec<QueueLoadScalingTrigger> => QueueLoadScalingTrigger).annotate({ "description": "Scaling trigger based on queue load" })), "cpu_utilization": Schema.optionalKey(Schema.suspend((): Schema.Codec<UtilizationScalingTrigger> => UtilizationScalingTrigger).annotate({ "description": "Scaling trigger based on CPU utilization by percentage" })), "gpu_utilization": Schema.optionalKey(Schema.suspend((): Schema.Codec<UtilizationScalingTrigger> => UtilizationScalingTrigger).annotate({ "description": "Scaling trigger based on GPU utilization by percentage" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PatchScalingTriggers" })
+export type PatchContainerPublicApiDto = { readonly "name": string, readonly "image"?: string, readonly "should_use_cached_image"?: boolean, readonly "exposed_port"?: number, readonly "healthcheck"?: HealthcheckSettings, readonly "entrypoint_overrides"?: EntrypointOverridesSettings, readonly "env"?: ReadonlyArray<EnvVarPublicApi>, readonly "autoupdate"?: AutoupdateSettings, readonly "volume_mounts"?: ReadonlyArray<ScratchVolumeMountDto | SecretVolumeMountDto | SharedVolumeMountDto | MemoryVolumeMountDto> } & { readonly [x: string]: Schema.Json }
+export const PatchContainerPublicApiDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the container to update", "examples": ["random-logger-0"] }), "image": Schema.optionalKey(Schema.String.annotate({ "description": "Image to be deployed in the container", "examples": ["registry-1.docker.io/chentex/random-logger:v1.0.1"] })), "should_use_cached_image": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Pull the image through the platform image cache. Applies only to public Docker Hub images. Has no effect for images from other registries, or when registry credentials are set. When the cache is used, registry credentials are not needed to avoid Docker Hub rate limits, because the cache pulls with a platform account. Without the cache, this does not apply. If `image` is not sent, the setting applies to the current image. If `image` is sent without this field, the current setting is kept.", "examples": [true] })), "exposed_port": Schema.optionalKey(Schema.Number.annotate({ "description": "Port to be exposed by the container", "examples": [8080] }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "healthcheck": Schema.optionalKey(Schema.suspend((): Schema.Codec<HealthcheckSettings> => HealthcheckSettings).annotate({ "description": "Healthcheck settings for the container" })), "entrypoint_overrides": Schema.optionalKey(Schema.suspend((): Schema.Codec<EntrypointOverridesSettings> => EntrypointOverridesSettings).annotate({ "description": "Entrypoint overrides settings for the container" })), "env": Schema.optionalKey(Schema.Array(EnvVarPublicApi).annotate({ "description": "Environment variables for the container" })), "autoupdate": Schema.optionalKey(Schema.suspend((): Schema.Codec<AutoupdateSettings> => AutoupdateSettings).annotate({ "description": "Container image autoupdate settings for the container" })), "volume_mounts": Schema.optionalKey(Schema.Array(Schema.Union([Schema.suspend((): Schema.Codec<ScratchVolumeMountDto> => ScratchVolumeMountDto).annotate({ "description": "Scratch volume mount" }), Schema.suspend((): Schema.Codec<SecretVolumeMountDto> => SecretVolumeMountDto).annotate({ "description": "Secret volume mount" }), Schema.suspend((): Schema.Codec<SharedVolumeMountDto> => SharedVolumeMountDto).annotate({ "description": "Shared filesystem volume mount" }), Schema.suspend((): Schema.Codec<MemoryVolumeMountDto> => MemoryVolumeMountDto).annotate({ "description": "Memory volume mount" })], { mode: "oneOf" })).annotate({ "description": "Volume mounts for the container" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PatchContainerPublicApiDto" })
+export type ReplicasPublicApiDto = { readonly "list": ReadonlyArray<ReplicaInfo> } & { readonly [x: string]: Schema.Json }
+export const ReplicasPublicApiDto = Schema.StructWithRest(Schema.Struct({ "list": Schema.Array(ReplicaInfo).annotate({ "description": "List of replicas for the deployment" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ReplicasPublicApiDto" })
+export type CreateFilesetSecretPublicApiDto = { readonly "name": string, readonly "files": ReadonlyArray<SecretFilePublicApiDto> } & { readonly [x: string]: Schema.Json }
+export const CreateFilesetSecretPublicApiDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the files secret", "examples": ["secret-files"] }), "files": Schema.Array(SecretFilePublicApiDto).annotate({ "description": "List of files to store in the secret" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateFilesetSecretPublicApiDto" })
+export type DeployInstancePublicDto = { readonly "instance_type": string, readonly "image": string, readonly "ssh_key_ids"?: string | ReadonlyArray<string>, readonly "startup_script_id"?: string, readonly "hostname": string, readonly "description"?: string, readonly "tags"?: ReadonlyArray<TagDto>, readonly "location_code": string, readonly "os_volume"?: OsVolumeDto, readonly "is_spot"?: boolean, readonly "coupon"?: string, readonly "volumes"?: ReadonlyArray<VolumeDto>, readonly "existing_volumes"?: ReadonlyArray<string>, readonly "contract"?: "LONG_TERM" | "PAY_AS_YOU_GO" | "SPOT", readonly "pricing"?: "DYNAMIC_PRICE" | "FIXED_PRICE" } & { readonly [x: string]: Schema.Json }
+export const DeployInstancePublicDto = Schema.StructWithRest(Schema.Struct({ "instance_type": Schema.String.annotate({ "examples": ["1H100.80S.30V"] }), "image": Schema.String.annotate({ "description": "OS image specification for the created instance. There are two options:\n\n1. OS image type or UUID. For a list of advertised images, check `GET /images`. Hidden images can also be deployed directly. The image must be enabled or explicitly enabled for the project owner. To set the name and size, use `\"os_volume\"` property.\n2. Previously customized OS volume ID. (To create an OS volume, first make an instance with existing `\"image\"` type.\nTo customize the volume content, ssh into that instance. Finally, delete the instance but keep the volume.)", "examples": ["ubuntu-22.04-cuda-12.4-docker", "3cbcb96b-f677-44d3-bb3d-59b4a1380491"] }), "ssh_key_ids": Schema.optionalKey(Schema.Union([Schema.String.annotate({ "format": "uuid" }), Schema.Array(Schema.String.annotate({ "format": "uuid" }))], { mode: "oneOf" }).annotate({ "examples": [["d1e1f9ce-5e6d-469a-b37e-d05725f6bb0e"]] })), "startup_script_id": Schema.optionalKey(Schema.String.annotate({ "examples": ["aa97fa19-ba9b-49dd-bd0e-350d7054fdd7"] })), "hostname": Schema.String.annotate({ "examples": ["my-instance-hostname"] }), "description": Schema.optionalKey(Schema.String.annotate({ "description": "Optional instance description." })), "tags": Schema.optionalKey(Schema.Array(TagDto).annotate({ "description": "Key-value tags for the new instance. Maximum 10. Omit `value` for a freeform tag. Keys are lowercased.", "examples": [[{ "key": "environment", "value": "production" }, { "key": "benchmark" }]] })), "location_code": Schema.String.annotate({ "description": "Location code for the instance and any newly created volumes", "examples": ["FIN-01"] }), "os_volume": Schema.optionalKey(Schema.suspend((): Schema.Codec<OsVolumeDto> => OsVolumeDto).annotate({ "description": "Newly created OS volume name and size (in GB). Use when `\"image\"` property is an OS image type.\n\nObject properties:\n  * `name` - Name of the OS volume\n  * `size` - Size of the OS volume in GB\n  * `on_spot_discontinue` - Removal policy for the OS volume for spot instances. Optional, by default, nothing is deleted. Allowed values: `keep_detached` (default behavior), `move_to_trash` (will be deleted after 96 hours and counts towards the storage volume quota), `delete_permanently` (will be deleted immediately).\n    ", "examples": [{ "name": "custom-os-volume-name", "size": 100, "on_spot_discontinue": "keep_detached" }] })), "is_spot": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Create a spot instance. Spot instances may be evicted by Verda at any time without warning." })), "coupon": Schema.optionalKey(Schema.String.annotate({ "examples": ["COUPON-CODE-2026"] })), "volumes": Schema.optionalKey(Schema.Array(VolumeDto).annotate({ "description": "Additional (**non-OS**) volumes to create and attach to this new instance.\n    \n  (To configure **OS** volume, use `\"image\"` and `\"os_volume\"` properties.)", "examples": [[{ "name": "additional-volume-name", "size": 1000, "type": "NVMe" }]] })), "existing_volumes": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "IDs of additional existing detached volumes to attach to this new instance when its created.\n\n(To configure instance **OS** volume, use `\"image\"` and `\"os_volume\"` properties.)", "examples": [["574ea778-030f-48a9-a906-ab1acd84f3fd"]] })), "contract": Schema.optionalKey(Schema.Literals(["LONG_TERM", "PAY_AS_YOU_GO", "SPOT"]).annotate({ "examples": ["PAY_AS_YOU_GO"] })), "pricing": Schema.optionalKey(Schema.Literals(["DYNAMIC_PRICE", "FIXED_PRICE"]).annotate({ "description": "This field is deprecated as DYNAMIC_PRICE is removed. Only FIXED_PRICE is supported now.", "examples": ["FIXED_PRICE"] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DeployInstancePublicDto" })
+export type CreateInstanceGroupDto = { readonly "name": string, readonly "description"?: string, readonly "location_code": string, readonly "instance_type": string, readonly "template": InstanceGroupTemplateDto } & { readonly [x: string]: Schema.Json }
+export const CreateInstanceGroupDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "examples": ["hive-b300-pool-1"] }), "description": Schema.optionalKey(Schema.String), "location_code": Schema.String.annotate({ "examples": ["FIN-02"] }), "instance_type": Schema.String.annotate({ "description": "A known instance type code. Fixed for the life of the group.", "examples": ["8B300.640S.176V"] }), "template": InstanceGroupTemplateDto }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateInstanceGroupDto" })
+export type ContainerDeploymentTemplateDetailPublicApiDto = { readonly "id": string, readonly "name": string, readonly "description": string, readonly "provider": string, readonly "engine": string, readonly "model_repository": string, readonly "parameters": string, readonly "context_length": number, readonly "input_modalities": ReadonlyArray<string>, readonly "output_modalities": ReadonlyArray<string>, readonly "tasks": ReadonlyArray<string>, readonly "requires_hugging_face_token": boolean, readonly "min_vram_gb": number, readonly "recommended_compute": ComputeResource, readonly "revision": { readonly [x: string]: Schema.Json }, readonly "variants": ReadonlyArray<ContainerDeploymentTemplateVariantPublicApiDto>, readonly "features": ReadonlyArray<ContainerDeploymentTemplateFeaturePublicApiDto> } & { readonly [x: string]: Schema.Json }
+export const ContainerDeploymentTemplateDetailPublicApiDto = Schema.StructWithRest(Schema.Struct({ "id": Schema.String.annotate({ "description": "Stable, URL-safe template identifier used in template paths", "examples": ["qwen3-5-9b"] }), "name": Schema.String.annotate({ "description": "Human-readable name of the model", "examples": ["Qwen3.5 9B"] }), "description": Schema.String.annotate({ "description": "Description of the model", "examples": ["Dense multimodal model with gated delta networks hybrid attention and 262K context. Single-GPU serving."] }), "provider": Schema.String.annotate({ "description": "Provider of the model", "examples": ["Qwen"] }), "engine": Schema.String.annotate({ "description": "Serving engine used by the template", "examples": ["vllm"] }), "model_repository": Schema.String.annotate({ "description": "Hugging Face repository the default variant loads", "examples": ["Qwen/Qwen3.5-9B"] }), "parameters": Schema.String.annotate({ "description": "Parameter count of the model (display string)", "examples": ["9B"] }), "context_length": Schema.Number.annotate({ "description": "Maximum context length in tokens", "examples": [262144] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "input_modalities": Schema.Array(Schema.String).annotate({ "description": "Accepted input modalities", "examples": [["text", "image"]] }), "output_modalities": Schema.Array(Schema.String).annotate({ "description": "Produced output modalities", "examples": [["text"]] }), "tasks": Schema.Array(Schema.String).annotate({ "description": "Coarse task labels", "examples": [["text", "multimodal"]] }), "requires_hugging_face_token": Schema.Boolean.annotate({ "description": "Whether a Hugging Face token is required to deploy the model (gated checkpoint)", "examples": [false] }), "min_vram_gb": Schema.Number.annotate({ "description": "Minimum total GPU memory in GB for the default variant", "examples": [22] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "recommended_compute": Schema.suspend((): Schema.Codec<ComputeResource> => ComputeResource).annotate({ "description": "Smallest compute configuration currently offered that fits the default variant. Null when nothing offered fits" }), "revision": Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" })).annotate({ "description": "Pinned Hugging Face revision of the default repository. Null tracks the main branch" }), "variants": Schema.Array(ContainerDeploymentTemplateVariantPublicApiDto).annotate({ "description": "Selectable weight variants. The first one is the default" }), "features": Schema.Array(ContainerDeploymentTemplateFeaturePublicApiDto).annotate({ "description": "Independently selectable serving features" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ContainerDeploymentTemplateDetailPublicApiDto" })
+export type CreateScaledJobDto = { readonly "name": string, readonly "container_registry_settings"?: CreateScaledJobContainerRegistrySettings, readonly "containers": ReadonlyArray<CreateScaledJobContainerDto>, readonly "compute": CreateScaledJobComputeResourceDto, readonly "scaling": CreateScaledJobScalingOptionsDto } & { readonly [x: string]: Schema.Json }
+export const CreateScaledJobDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the job deployment. Immutable after creation", "examples": ["flux-training"] }), "container_registry_settings": Schema.optionalKey(Schema.suspend((): Schema.Codec<CreateScaledJobContainerRegistrySettings> => CreateScaledJobContainerRegistrySettings).annotate({ "description": "Container registry settings" })), "containers": Schema.Array(CreateScaledJobContainerDto).annotate({ "description": "Containers to be deployed" }), "compute": Schema.suspend((): Schema.Codec<CreateScaledJobComputeResourceDto> => CreateScaledJobComputeResourceDto).annotate({ "description": "Compute settings for the job deployment" }), "scaling": Schema.suspend((): Schema.Codec<CreateScaledJobScalingOptionsDto> => CreateScaledJobScalingOptionsDto).annotate({ "description": "Scaling settings for the job deployment" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScaledJobDto" })
+export type PatchScaledJobDto = { readonly "container_registry_settings"?: CreateScaledJobContainerRegistrySettings, readonly "containers"?: ReadonlyArray<PatchScaledJobContainerDto>, readonly "compute"?: CreateScaledJobComputeResourceDto, readonly "scaling"?: PatchScaledJobScalingOptionsDto } & { readonly [x: string]: Schema.Json }
+export const PatchScaledJobDto = Schema.StructWithRest(Schema.Struct({ "container_registry_settings": Schema.optionalKey(Schema.suspend((): Schema.Codec<CreateScaledJobContainerRegistrySettings> => CreateScaledJobContainerRegistrySettings).annotate({ "description": "Container registry settings", "examples": [{ "credentials": { "name": "dockerhub-credentials" } }] })), "containers": Schema.optionalKey(Schema.Array(PatchScaledJobContainerDto).annotate({ "description": "Containers properties to be updated" })), "compute": Schema.optionalKey(Schema.suspend((): Schema.Codec<CreateScaledJobComputeResourceDto> => CreateScaledJobComputeResourceDto).annotate({ "description": "Compute settings for the job deployment" })), "scaling": Schema.optionalKey(Schema.suspend((): Schema.Codec<PatchScaledJobScalingOptionsDto> => PatchScaledJobScalingOptionsDto).annotate({ "description": "Scaling settings for the job deployment" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PatchScaledJobDto" })
+export type ScaledJobResponseDto = { readonly "name": string, readonly "containers": ReadonlyArray<ContainerResponseDto>, readonly "endpoint_base_url": string, readonly "created_at": string, readonly "created_by_user_id": string, readonly "compute": ComputeResource, readonly "container_registry_settings": ContainerRegistrySettingsResponseDto } & { readonly [x: string]: Schema.Json }
+export const ScaledJobResponseDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Job name", "examples": ["flux-training"] }), "containers": Schema.Array(ContainerResponseDto).annotate({ "description": "Containers in the job deployment" }), "endpoint_base_url": Schema.String.annotate({ "description": "The base URL of the endpoint", "examples": ["https://containers.datacrunch.io/flux-training"] }), "created_at": Schema.String.annotate({ "examples": ["2021-08-31T12:00:00.000Z"] }), "created_by_user_id": Schema.String.annotate({ "description": "ID of the user who created the job", "examples": ["0576ee4a-d45c-44b8-b2be-d8ad0347cb46"] }), "compute": Schema.suspend((): Schema.Codec<ComputeResource> => ComputeResource).annotate({ "description": "Compute resource details" }), "container_registry_settings": Schema.suspend((): Schema.Codec<ContainerRegistrySettingsResponseDto> => ContainerRegistrySettingsResponseDto).annotate({ "description": "Container registry settings" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ScaledJobResponseDto" })
+export type DeploymentPublicApiResponseDto = { readonly "name": string, readonly "containers": ReadonlyArray<ContainerPublicApiResponseDto>, readonly "endpoint_base_url": string, readonly "created_at": string, readonly "compute": ComputeResource, readonly "container_registry_settings": ContainerRegistrySettingsPublicApiDto, readonly "is_spot": boolean } & { readonly [x: string]: Schema.Json }
+export const DeploymentPublicApiResponseDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Deployment name", "examples": ["flux"] }), "containers": Schema.Array(ContainerPublicApiResponseDto).annotate({ "description": "Containers in the deployment" }), "endpoint_base_url": Schema.String.annotate({ "description": "The base URL of the endpoint", "examples": ["https://containers.datacrunch.io/flux"] }), "created_at": Schema.String.annotate({ "examples": ["2021-08-31T12:00:00.000Z"] }), "compute": Schema.suspend((): Schema.Codec<ComputeResource> => ComputeResource).annotate({ "description": "Compute resource details" }), "container_registry_settings": Schema.suspend((): Schema.Codec<ContainerRegistrySettingsPublicApiDto> => ContainerRegistrySettingsPublicApiDto).annotate({ "description": "Container registry settings" }), "is_spot": Schema.Boolean.annotate({ "examples": [false] }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DeploymentPublicApiResponseDto" })
+export type CreateScalingOptionsPublicApiDto = { readonly "min_replica_count": number, readonly "max_replica_count": number, readonly "scale_down_policy": ScalingPolicy, readonly "scale_up_policy": ScalingPolicy, readonly "queue_message_ttl_seconds": number, readonly "concurrent_requests_per_replica": number, readonly "scaling_triggers": ScalingTriggers } & { readonly [x: string]: Schema.Json }
+export const CreateScalingOptionsPublicApiDto = Schema.StructWithRest(Schema.Struct({ "min_replica_count": Schema.Number.annotate({ "description": "Minimum number of replicas" }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "max_replica_count": Schema.Number.annotate({ "description": "Maximum number of replicas" }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "scale_down_policy": Schema.suspend((): Schema.Codec<ScalingPolicy> => ScalingPolicy).annotate({ "description": "Policy for scaling down replicas" }), "scale_up_policy": Schema.suspend((): Schema.Codec<ScalingPolicy> => ScalingPolicy).annotate({ "description": "Policy for scaling up replicas" }), "queue_message_ttl_seconds": Schema.Number.annotate({ "description": "Duration in seconds after which messages in the queue will be dropped" }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "concurrent_requests_per_replica": Schema.Number.annotate({ "description": "Number of requests each replica can process concurrently. Set this number higher for LLM endpoints, and to 1 for image generation endpoints." }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "scaling_triggers": Schema.suspend((): Schema.Codec<ScalingTriggers> => ScalingTriggers).annotate({ "description": "Triggers for scaling up and down" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateScalingOptionsPublicApiDto" })
+export type ScalingOptionsPublicApiDto = { readonly "min_replica_count": number, readonly "max_replica_count": number, readonly "scale_down_policy": ScalingPolicy, readonly "scale_up_policy": ScalingPolicy, readonly "queue_message_ttl_seconds": number, readonly "concurrent_requests_per_replica": number, readonly "scaling_triggers": ScalingTriggers } & { readonly [x: string]: Schema.Json }
+export const ScalingOptionsPublicApiDto = Schema.StructWithRest(Schema.Struct({ "min_replica_count": Schema.Number.annotate({ "description": "Minimum number of replicas", "examples": [1] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "max_replica_count": Schema.Number.annotate({ "description": "Maximum number of replicas", "examples": [50] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "scale_down_policy": Schema.suspend((): Schema.Codec<ScalingPolicy> => ScalingPolicy).annotate({ "description": "Policy for scaling down replicas", "examples": [{ "delay_seconds": 300 }] }), "scale_up_policy": Schema.suspend((): Schema.Codec<ScalingPolicy> => ScalingPolicy).annotate({ "description": "Policy for scaling up replicas", "examples": [{ "delay_seconds": 300 }] }), "queue_message_ttl_seconds": Schema.Number.annotate({ "description": "Duration in seconds after which messages in the queue will be dropped", "examples": [500] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "concurrent_requests_per_replica": Schema.Number.annotate({ "description": "Number of requests each replica can process concurrently.", "examples": [1] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })), "scaling_triggers": Schema.suspend((): Schema.Codec<ScalingTriggers> => ScalingTriggers).annotate({ "description": "Triggers for scaling up and down" }) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "ScalingOptionsPublicApiDto" })
+export type PatchScalingOptionsPublicApiDto = { readonly "min_replica_count"?: number, readonly "max_replica_count"?: number, readonly "scale_down_policy"?: ScalingPolicy, readonly "scale_up_policy"?: ScalingPolicy, readonly "queue_message_ttl_seconds"?: number, readonly "concurrent_requests_per_replica"?: number, readonly "scaling_triggers"?: PatchScalingTriggers } & { readonly [x: string]: Schema.Json }
+export const PatchScalingOptionsPublicApiDto = Schema.StructWithRest(Schema.Struct({ "min_replica_count": Schema.optionalKey(Schema.Number.annotate({ "description": "Minimum number of replicas", "examples": [1] }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "max_replica_count": Schema.optionalKey(Schema.Number.annotate({ "description": "Maximum number of replicas", "examples": [50] }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "scale_down_policy": Schema.optionalKey(Schema.suspend((): Schema.Codec<ScalingPolicy> => ScalingPolicy).annotate({ "description": "Policy for scaling down replicas", "examples": [{ "delay_seconds": 300 }] })), "scale_up_policy": Schema.optionalKey(Schema.suspend((): Schema.Codec<ScalingPolicy> => ScalingPolicy).annotate({ "description": "Policy for scaling up replicas", "examples": [{ "delay_seconds": 300 }] })), "queue_message_ttl_seconds": Schema.optionalKey(Schema.Number.annotate({ "description": "Duration in seconds after which messages in the queue will be dropped", "examples": [500] }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "concurrent_requests_per_replica": Schema.optionalKey(Schema.Number.annotate({ "description": "Number of requests each replica can process concurrently.", "examples": [1] }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "scaling_triggers": Schema.optionalKey(Schema.suspend((): Schema.Codec<PatchScalingTriggers> => PatchScalingTriggers).annotate({ "description": "Triggers for scaling up and down" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PatchScalingOptionsPublicApiDto" })
+export type PatchDeploymentPublicApiDto = { readonly "container_registry_settings"?: ContainerRegistrySettingsPublicApiDto, readonly "containers"?: ReadonlyArray<PatchContainerPublicApiDto>, readonly "compute"?: ComputeResource, readonly "is_spot"?: boolean } & { readonly [x: string]: Schema.Json }
+export const PatchDeploymentPublicApiDto = Schema.StructWithRest(Schema.Struct({ "container_registry_settings": Schema.optionalKey(Schema.suspend((): Schema.Codec<ContainerRegistrySettingsPublicApiDto> => ContainerRegistrySettingsPublicApiDto).annotate({ "description": "Container registry settings. Private registries require saving the credentials via datacrunch cloud UI", "examples": [{ "is_private": true, "credentials": { "name": "dockerhub-credentials" } }] })), "containers": Schema.optionalKey(Schema.Array(PatchContainerPublicApiDto).annotate({ "description": "Containers properties to be updated" })), "compute": Schema.optionalKey(Schema.suspend((): Schema.Codec<ComputeResource> => ComputeResource).annotate({ "description": "Change compute settings for the deployment" })), "is_spot": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Spot instance settings for the deployment", "examples": [false] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "PatchDeploymentPublicApiDto" })
+export type CreateDeploymentPublicApiDto = { readonly "name": string, readonly "container_registry_settings": ContainerRegistrySettingsPublicApiDto, readonly "containers": ReadonlyArray<ContainerPublicApiDto>, readonly "compute": ComputeResource, readonly "scaling": CreateScalingOptionsPublicApiDto, readonly "is_spot"?: boolean, readonly "is_verda_io"?: boolean } & { readonly [x: string]: Schema.Json }
+export const CreateDeploymentPublicApiDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the deployment. Immutable after creation", "examples": ["llm-inference"] }), "container_registry_settings": Schema.suspend((): Schema.Codec<ContainerRegistrySettingsPublicApiDto> => ContainerRegistrySettingsPublicApiDto).annotate({ "description": "Container registry settings. Private registries require saving the credentials via datacrunch cloud UI" }), "containers": Schema.Array(ContainerPublicApiDto).annotate({ "description": "Containers to be deployed" }), "compute": Schema.suspend((): Schema.Codec<ComputeResource> => ComputeResource).annotate({ "description": "Compute settings for the deployment" }), "scaling": Schema.suspend((): Schema.Codec<CreateScalingOptionsPublicApiDto> => CreateScalingOptionsPublicApiDto).annotate({ "description": "Scaling settings for the deployment" }), "is_spot": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Is the deployment a spot deployment", "default": false, "examples": [false] })), "is_verda_io": Schema.optionalKey(Schema.Boolean.annotate({ "description": "Declare the workload is a verda-io image (built by `verda-io build`).", "default": false, "examples": [false] })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "CreateDeploymentPublicApiDto" })
+export type DeployContainerDeploymentTemplatePublicApiDto = { readonly "name": string, readonly "variant"?: string, readonly "features"?: ReadonlyArray<string>, readonly "compute"?: ComputeResource, readonly "hf_token_secret_name"?: string, readonly "shm_size_mb"?: 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384 | 32768, readonly "scaling"?: PatchScalingOptionsPublicApiDto } & { readonly [x: string]: Schema.Json }
+export const DeployContainerDeploymentTemplatePublicApiDto = Schema.StructWithRest(Schema.Struct({ "name": Schema.String.annotate({ "description": "Name of the deployment. Immutable after creation", "examples": ["qwen3-5-9b"] }), "variant": Schema.optionalKey(Schema.String.annotate({ "description": "Variant id from the template detail. Defaults to the first variant", "examples": ["fp8"] })), "features": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "description": "Feature ids to enable. Defaults to the features marked is_default", "examples": [["tool_calling", "reasoning"]] })), "compute": Schema.optionalKey(Schema.suspend((): Schema.Codec<ComputeResource> => ComputeResource).annotate({ "description": "Compute to deploy on. Defaults to the smallest offered configuration that fits the variant" })), "hf_token_secret_name": Schema.optionalKey(Schema.String.annotate({ "description": "Name of an existing secret (POST /secrets) holding a Hugging Face token. Required for gated models", "examples": ["hf-token"] })), "shm_size_mb": Schema.optionalKey(Schema.Literals([64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]).annotate({ "description": "Size of the /dev/shm memory volume in MiB. Defaults to a size based on the GPU count (1 GPU: 1024, 2: 4096, 4: 8192, 8: 16384) or the template default", "examples": [8192] })), "scaling": Schema.optionalKey(Schema.suspend((): Schema.Codec<PatchScalingOptionsPublicApiDto> => PatchScalingOptionsPublicApiDto).annotate({ "description": "Scaling options. Omitted fields use the platform defaults" })) }), [Schema.Record(Schema.String, Schema.Json.annotate({ "expected": "JSON value" }))]).annotate({ "identifier": "DeployContainerDeploymentTemplatePublicApiDto" })
+// schemas
+export type Oauth2ControllerGetAccessTokenRequestJson = GetAccessTokenDto | RefreshAccessTokenPublicApiDto
+export const Oauth2ControllerGetAccessTokenRequestJson = Schema.Union([GetAccessTokenDto, RefreshAccessTokenPublicApiDto], { mode: "oneOf" })
+export type Oauth2ControllerGetAccessToken200 = GetAccessTokenResponseDto
+export const Oauth2ControllerGetAccessToken200 = GetAccessTokenResponseDto
+export type Oauth2ControllerGetAccessToken400 = PublicApiErrorResponseDto
+export const Oauth2ControllerGetAccessToken400 = PublicApiErrorResponseDto
+export type Oauth2ControllerGetAccessToken401 = PublicApiErrorResponseDto
+export const Oauth2ControllerGetAccessToken401 = PublicApiErrorResponseDto
+export type BalanceControllerGetBalance200 = BalanceResponseDto
+export const BalanceControllerGetBalance200 = BalanceResponseDto
+export type ImagesControllerGetImageTypesParams = { readonly "instance_type"?: string }
+export const ImagesControllerGetImageTypesParams = Schema.Struct({ "instance_type": Schema.optionalKey(Schema.String.annotate({ "examples": ["1A100.22V"] })) })
+export type ImagesControllerGetImageTypes200 = ReadonlyArray<Os>
+export const ImagesControllerGetImageTypes200 = Schema.Array(Os)
+export type ImagesControllerGetClusterImageTypesParams = { readonly "instance_type"?: string }
+export const ImagesControllerGetClusterImageTypesParams = Schema.Struct({ "instance_type": Schema.optionalKey(Schema.String.annotate({ "examples": ["16B200"] })) })
+export type ImagesControllerGetClusterImageTypes200 = ReadonlyArray<Os>
+export const ImagesControllerGetClusterImageTypes200 = Schema.Array(Os)
+export type AuditLogControllerGetAuditLogParams = { readonly "action"?: "other" | "create" | "start" | "start_complete" | "shutdown_complete" | "shutdown" | "delete" | "delete_complete" | "attach" | "attach_complete" | "detach" | "detach_complete" | "clone" | "resize" | "rename" | "transfer" | "trash" | "trash_complete" | "restore" | "cancel" | "provisioning" | "running" | "configure_spot" | "authenticate" | "expire" | "accept" | "update_role" | "revoke" | "login" | "logout" | "login_failed" | "auth_mfa_enable" | "auth_mfa_disable" | "auth_mfa_challenge" | "auth_mfa_verify" | "password_reset" | "complete" | "redeem" | "suspend" | "unsuspend" | "approve" | "decline" | "update" | "rotate_secret" | "disable" | "enable", readonly "object_type"?: "compute" | "volume" | "ssh_key" | "invite" | "user" | "member" | "cloud_api_credential" | "object_storage_bucket" | "object_storage_key_pair" | "custom_image" | "startup_script" | "topup" | "coupon" | "bank_transfer" | "bank_transfer_account" | "balance" | "other" | "object_storage" | "quota_request" | "webhook" | "auto_top_up", readonly "start_date"?: string, readonly "end_date"?: string, readonly "page_size"?: number, readonly "cursor"?: string }
+export const AuditLogControllerGetAuditLogParams = Schema.Struct({ "action": Schema.optionalKey(Schema.Literals(["other", "create", "start", "start_complete", "shutdown_complete", "shutdown", "delete", "delete_complete", "attach", "attach_complete", "detach", "detach_complete", "clone", "resize", "rename", "transfer", "trash", "trash_complete", "restore", "cancel", "provisioning", "running", "configure_spot", "authenticate", "expire", "accept", "update_role", "revoke", "login", "logout", "login_failed", "auth_mfa_enable", "auth_mfa_disable", "auth_mfa_challenge", "auth_mfa_verify", "password_reset", "complete", "redeem", "suspend", "unsuspend", "approve", "decline", "update", "rotate_secret", "disable", "enable"])), "object_type": Schema.optionalKey(Schema.Literals(["compute", "volume", "ssh_key", "invite", "user", "member", "cloud_api_credential", "object_storage_bucket", "object_storage_key_pair", "custom_image", "startup_script", "topup", "coupon", "bank_transfer", "bank_transfer_account", "balance", "other", "object_storage", "quota_request", "webhook", "auto_top_up"])), "start_date": Schema.optionalKey(Schema.String.annotate({ "examples": ["2026-01-01T00:00:00.000Z"] })), "end_date": Schema.optionalKey(Schema.String), "page_size": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "cursor": Schema.optionalKey(Schema.String) })
+export type AuditLogControllerGetAuditLog200 = GetAuditLogResponseListDto
+export const AuditLogControllerGetAuditLog200 = GetAuditLogResponseListDto
+export type AuditLogControllerDownloadAuditLogRequestJson = DownloadAuditLogParamsDto
+export const AuditLogControllerDownloadAuditLogRequestJson = DownloadAuditLogParamsDto
+export type AuditLogControllerDownloadAuditLog200 = DownloadAuditLogResponseDto
+export const AuditLogControllerDownloadAuditLog200 = DownloadAuditLogResponseDto
+export type JournalControllerGetJournalParams = { readonly "page"?: number, readonly "pageSize"?: number, readonly "compute_id"?: string, readonly "volume_id"?: string, readonly "action_code"?: "create" | "start" | "start:complete" | "shutdown:complete" | "shutdown" | "delete" | "delete:complete" | "attach" | "attach:complete" | "detach" | "detach:complete" | "clone" | "resize" | "rename" | "restore" | "transfer" | "trash" | "trash:complete" | "configure_spot" | "cancel" | "provisioning" | "running" | "installation:failed" | "validating" | "deleting" | "error", readonly "object_type"?: "compute" | "volume", readonly "hydrate"?: boolean }
+export const JournalControllerGetJournalParams = Schema.Struct({ "page": Schema.optionalKey(Schema.Number.annotate({ "default": 1 }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "pageSize": Schema.optionalKey(Schema.Number.annotate({ "default": 10 }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "compute_id": Schema.optionalKey(Schema.String), "volume_id": Schema.optionalKey(Schema.String), "action_code": Schema.optionalKey(Schema.Literals(["create", "start", "start:complete", "shutdown:complete", "shutdown", "delete", "delete:complete", "attach", "attach:complete", "detach", "detach:complete", "clone", "resize", "rename", "restore", "transfer", "trash", "trash:complete", "configure_spot", "cancel", "provisioning", "running", "installation:failed", "validating", "deleting", "error"])), "object_type": Schema.optionalKey(Schema.Literals(["compute", "volume"])), "hydrate": Schema.optionalKey(Schema.Boolean) })
+export type JournalControllerGetJournal200 = ReadonlyArray<GetActivityJournalResponseDto>
+export const JournalControllerGetJournal200 = Schema.Array(GetActivityJournalResponseDto)
+export type JournalControllerGetComputeJournalParams = { readonly "page"?: number, readonly "pageSize"?: number, readonly "compute_id"?: string, readonly "volume_id"?: string, readonly "action_code"?: "create" | "start" | "start:complete" | "shutdown:complete" | "shutdown" | "delete" | "delete:complete" | "attach" | "attach:complete" | "detach" | "detach:complete" | "clone" | "resize" | "rename" | "restore" | "transfer" | "trash" | "trash:complete" | "configure_spot" | "cancel" | "provisioning" | "running" | "installation:failed" | "validating" | "deleting" | "error", readonly "object_type"?: "compute" | "volume", readonly "hydrate"?: boolean }
+export const JournalControllerGetComputeJournalParams = Schema.Struct({ "page": Schema.optionalKey(Schema.Number.annotate({ "default": 1 }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "pageSize": Schema.optionalKey(Schema.Number.annotate({ "default": 10 }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "compute_id": Schema.optionalKey(Schema.String), "volume_id": Schema.optionalKey(Schema.String), "action_code": Schema.optionalKey(Schema.Literals(["create", "start", "start:complete", "shutdown:complete", "shutdown", "delete", "delete:complete", "attach", "attach:complete", "detach", "detach:complete", "clone", "resize", "rename", "restore", "transfer", "trash", "trash:complete", "configure_spot", "cancel", "provisioning", "running", "installation:failed", "validating", "deleting", "error"])), "object_type": Schema.optionalKey(Schema.Literals(["compute", "volume"])), "hydrate": Schema.optionalKey(Schema.Boolean) })
+export type JournalControllerGetComputeJournal200 = ReadonlyArray<GetActivityJournalResponseDto>
+export const JournalControllerGetComputeJournal200 = Schema.Array(GetActivityJournalResponseDto)
+export type JournalControllerGetVolumeJournalParams = { readonly "page"?: number, readonly "pageSize"?: number, readonly "compute_id"?: string, readonly "volume_id"?: string, readonly "action_code"?: "create" | "start" | "start:complete" | "shutdown:complete" | "shutdown" | "delete" | "delete:complete" | "attach" | "attach:complete" | "detach" | "detach:complete" | "clone" | "resize" | "rename" | "restore" | "transfer" | "trash" | "trash:complete" | "configure_spot" | "cancel" | "provisioning" | "running" | "installation:failed" | "validating" | "deleting" | "error", readonly "object_type"?: "compute" | "volume", readonly "hydrate"?: boolean }
+export const JournalControllerGetVolumeJournalParams = Schema.Struct({ "page": Schema.optionalKey(Schema.Number.annotate({ "default": 1 }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "pageSize": Schema.optionalKey(Schema.Number.annotate({ "default": 10 }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "compute_id": Schema.optionalKey(Schema.String), "volume_id": Schema.optionalKey(Schema.String), "action_code": Schema.optionalKey(Schema.Literals(["create", "start", "start:complete", "shutdown:complete", "shutdown", "delete", "delete:complete", "attach", "attach:complete", "detach", "detach:complete", "clone", "resize", "rename", "restore", "transfer", "trash", "trash:complete", "configure_spot", "cancel", "provisioning", "running", "installation:failed", "validating", "deleting", "error"])), "object_type": Schema.optionalKey(Schema.Literals(["compute", "volume"])), "hydrate": Schema.optionalKey(Schema.Boolean) })
+export type JournalControllerGetVolumeJournal200 = ReadonlyArray<GetActivityJournalResponseDto>
+export const JournalControllerGetVolumeJournal200 = Schema.Array(GetActivityJournalResponseDto)
+export type VolumesControllerGetVolumesParams = { readonly "status"?: "ordered" | "attached" | "attaching" | "detached" | "deleted" | "cloning" | "detaching" | "deleting" | "restoring" | "created" | "exported" | "canceled" | "canceling" }
+export const VolumesControllerGetVolumesParams = Schema.Struct({ "status": Schema.optionalKey(Schema.Literals(["ordered", "attached", "attaching", "detached", "deleted", "cloning", "detaching", "deleting", "restoring", "created", "exported", "canceled", "canceling"]).annotate({ "examples": ["attached"] })) })
+export type VolumesControllerGetVolumes200 = ReadonlyArray<GetVolumePublicResponseDto>
+export const VolumesControllerGetVolumes200 = Schema.Array(GetVolumePublicResponseDto)
+export type VolumesControllerPerformActionsParams = { readonly "user-agent": string, readonly "cf-connecting-ip": string }
+export const VolumesControllerPerformActionsParams = Schema.Struct({ "user-agent": Schema.String, "cf-connecting-ip": Schema.String })
+export type VolumesControllerPerformActionsRequestJson = PerformVolumeActionPublicDto
+export const VolumesControllerPerformActionsRequestJson = PerformVolumeActionPublicDto
+export type VolumesControllerCreateVolumeParams = { readonly "user-agent": string, readonly "cf-connecting-ip": string }
+export const VolumesControllerCreateVolumeParams = Schema.Struct({ "user-agent": Schema.String, "cf-connecting-ip": Schema.String })
+export type VolumesControllerCreateVolumeRequestJson = CreateVolumePublicDto
+export const VolumesControllerCreateVolumeRequestJson = CreateVolumePublicDto
+export type VolumesControllerGetVolumesInTrash200 = ReadonlyArray<GetVolumeInTrashPublicResponseDto>
+export const VolumesControllerGetVolumesInTrash200 = Schema.Array(GetVolumeInTrashPublicResponseDto)
+export type VolumesControllerGetVolumeById200 = GetVolumePublicResponseDto | GetVolumeInTrashPublicResponseDto
+export const VolumesControllerGetVolumeById200 = Schema.Union([GetVolumePublicResponseDto, GetVolumeInTrashPublicResponseDto], { mode: "oneOf" })
+export type VolumesControllerDeleteVolumeByIdParams = { readonly "user-agent": string, readonly "cf-connecting-ip": string }
+export const VolumesControllerDeleteVolumeByIdParams = Schema.Struct({ "user-agent": Schema.String, "cf-connecting-ip": Schema.String })
+export type VolumesControllerDeleteVolumeByIdRequestJson = DeleteVolumePublicDto
+export const VolumesControllerDeleteVolumeByIdRequestJson = DeleteVolumePublicDto
+export type VolumesControllerAddTagRequestJson = TagDto
+export const VolumesControllerAddTagRequestJson = TagDto
+export type VolumesControllerAddTag201 = TagResponseDto
+export const VolumesControllerAddTag201 = TagResponseDto
+export type VolumeTypesControllerGetVolumeTypesParams = { readonly "currency"?: "usd" | "eur" }
+export const VolumeTypesControllerGetVolumeTypesParams = Schema.Struct({ "currency": Schema.optionalKey(Schema.Literals(["usd", "eur"]).annotate({ "default": "usd", "examples": ["usd"] })) })
+export type VolumeTypesControllerGetVolumeTypes200 = ReadonlyArray<VolumeType>
+export const VolumeTypesControllerGetVolumeTypes200 = Schema.Array(VolumeType)
+export type InstancesControllerGetInstancesParams = { readonly "status"?: "running" | "provisioning" | "offline" | "discontinued" | "unknown" | "ordered" | "notfound" | "new" | "error" | "deleting" | "validating" | "no_capacity" | "installation_failed", readonly "computeId"?: string, readonly "tag"?: ReadonlyArray<string> }
+export const InstancesControllerGetInstancesParams = Schema.Struct({ "status": Schema.optionalKey(Schema.Literals(["running", "provisioning", "offline", "discontinued", "unknown", "ordered", "notfound", "new", "error", "deleting", "validating", "no_capacity", "installation_failed"])), "computeId": Schema.optionalKey(Schema.String), "tag": Schema.optionalKey(Schema.Array(Schema.String).annotate({ "examples": [["environment=production", "benchmark"]] })) })
+export type InstancesControllerGetInstances200 = ReadonlyArray<GetInstanceResponsePublicApiDto>
+export const InstancesControllerGetInstances200 = Schema.Array(GetInstanceResponsePublicApiDto)
+export type InstancesControllerPerformActionsParams = { readonly "user-agent": string, readonly "cf-connecting-ip": string }
+export const InstancesControllerPerformActionsParams = Schema.Struct({ "user-agent": Schema.String, "cf-connecting-ip": Schema.String })
+export type InstancesControllerPerformActionsRequestJson = PerformInstanceActionPublicDto
+export const InstancesControllerPerformActionsRequestJson = PerformInstanceActionPublicDto
+export type InstancesControllerPerformActions202 = ReadonlyArray<InstanceActionResultDto>
+export const InstancesControllerPerformActions202 = Schema.Array(InstanceActionResultDto)
+export type InstancesControllerPerformActions207 = ReadonlyArray<InstanceActionResultDto>
+export const InstancesControllerPerformActions207 = Schema.Array(InstanceActionResultDto)
+export type InstancesControllerDeployInstanceParams = { readonly "user-agent": string, readonly "cf-connecting-ip": string }
+export const InstancesControllerDeployInstanceParams = Schema.Struct({ "user-agent": Schema.String, "cf-connecting-ip": Schema.String })
+export type InstancesControllerDeployInstanceRequestJson = DeployInstancePublicDto
+export const InstancesControllerDeployInstanceRequestJson = DeployInstancePublicDto
+export type InstancesControllerGetInstanceById200 = GetInstanceResponsePublicApiDto
+export const InstancesControllerGetInstanceById200 = GetInstanceResponsePublicApiDto
+export type InstancesControllerPerformActionDeprecatedParams = { readonly "user-agent": string, readonly "cf-connecting-ip": string }
+export const InstancesControllerPerformActionDeprecatedParams = Schema.Struct({ "user-agent": Schema.String, "cf-connecting-ip": Schema.String })
+export type InstancesControllerPerformActionDeprecatedRequestJson = PerformInstanceActionPublicDto
+export const InstancesControllerPerformActionDeprecatedRequestJson = PerformInstanceActionPublicDto
+export type InstancesControllerAddTagRequestJson = TagDto
+export const InstancesControllerAddTagRequestJson = TagDto
+export type InstancesControllerAddTag201 = TagResponseDto
+export const InstancesControllerAddTag201 = TagResponseDto
+export type ClustersControllerGetInstances200 = ReadonlyArray<GetClusterResponsePublicApiDto>
+export const ClustersControllerGetInstances200 = Schema.Array(GetClusterResponsePublicApiDto)
+export type ClustersControllerPerformActionsParams = { readonly "user-agent": string, readonly "cf-connecting-ip": string }
+export const ClustersControllerPerformActionsParams = Schema.Struct({ "user-agent": Schema.String, "cf-connecting-ip": Schema.String })
+export type ClustersControllerPerformActionsRequestJson = PerformClusterActionsBulkDto
+export const ClustersControllerPerformActionsRequestJson = PerformClusterActionsBulkDto
+export type ClustersControllerDeployClusterParams = { readonly "user-agent": string, readonly "cf-connecting-ip": string }
+export const ClustersControllerDeployClusterParams = Schema.Struct({ "user-agent": Schema.String, "cf-connecting-ip": Schema.String })
+export type ClustersControllerDeployClusterRequestJson = DeployClusterPublicDto
+export const ClustersControllerDeployClusterRequestJson = DeployClusterPublicDto
+export type ClustersControllerDeployCluster202 = DeployClusterResponsePublicApiDto
+export const ClustersControllerDeployCluster202 = DeployClusterResponsePublicApiDto
+export type ClustersControllerGetClusterById200 = GetClusterResponsePublicApiDto
+export const ClustersControllerGetClusterById200 = GetClusterResponsePublicApiDto
+export type ClustersControllerPerformClusterNodeActionParams = { readonly "user-agent": string, readonly "cf-connecting-ip": string }
+export const ClustersControllerPerformClusterNodeActionParams = Schema.Struct({ "user-agent": Schema.String, "cf-connecting-ip": Schema.String })
+export type ClustersControllerPerformClusterNodeActionRequestJson = PerformClusterNodeActionPublicDto
+export const ClustersControllerPerformClusterNodeActionRequestJson = PerformClusterNodeActionPublicDto
+export type ClustersControllerAddTagRequestJson = TagDto
+export const ClustersControllerAddTagRequestJson = TagDto
+export type ClustersControllerAddTag201 = TagResponseDto
+export const ClustersControllerAddTag201 = TagResponseDto
+export type InstanceTypesControllerGetInstanceTypesParams = { readonly "currency"?: "usd" | "eur" }
+export const InstanceTypesControllerGetInstanceTypesParams = Schema.Struct({ "currency": Schema.optionalKey(Schema.Literals(["usd", "eur"]).annotate({ "default": "usd", "examples": ["usd"] })) })
+export type InstanceTypesControllerGetInstanceTypes200 = ReadonlyArray<InstanceType>
+export const InstanceTypesControllerGetInstanceTypes200 = Schema.Array(InstanceType)
+export type InstanceAvailabilityControllerGetAllAvailabilitiesParams = { readonly "isSpot"?: string, readonly "locationCode"?: string, readonly "is_spot"?: string, readonly "location_code"?: string }
+export const InstanceAvailabilityControllerGetAllAvailabilitiesParams = Schema.Struct({ "isSpot": Schema.optionalKey(Schema.String), "locationCode": Schema.optionalKey(Schema.String.annotate({ "examples": ["FIN-01"] })), "is_spot": Schema.optionalKey(Schema.String.annotate({ "default": "false", "examples": ["false"] })), "location_code": Schema.optionalKey(Schema.String.annotate({ "examples": ["FIN-01"] })) })
+export type InstanceAvailabilityControllerGetAllAvailabilities200 = ReadonlyArray<InstanceAvailabilityResponseDto>
+export const InstanceAvailabilityControllerGetAllAvailabilities200 = Schema.Array(InstanceAvailabilityResponseDto)
+export type InstanceAvailabilityControllerCheckAvailabilityParams = { readonly "isSpot"?: string, readonly "locationCode"?: string, readonly "is_spot"?: string, readonly "location_code"?: string }
+export const InstanceAvailabilityControllerCheckAvailabilityParams = Schema.Struct({ "isSpot": Schema.optionalKey(Schema.String), "locationCode": Schema.optionalKey(Schema.String.annotate({ "examples": ["FIN-01"] })), "is_spot": Schema.optionalKey(Schema.String.annotate({ "default": "false", "examples": ["false"] })), "location_code": Schema.optionalKey(Schema.String.annotate({ "examples": ["FIN-01"] })) })
+export type InstanceAvailabilityControllerCheckAvailability200 = boolean
+export const InstanceAvailabilityControllerCheckAvailability200 = Schema.Boolean
+export type ClusterAvailabilityControllerGetAllAvailabilitiesParams = { readonly "location_code"?: string }
+export const ClusterAvailabilityControllerGetAllAvailabilitiesParams = Schema.Struct({ "location_code": Schema.optionalKey(Schema.String.annotate({ "examples": ["FIN-03"] })) })
+export type ClusterAvailabilityControllerGetAllAvailabilities200 = ReadonlyArray<ClusterAvailabilityResponseDto>
+export const ClusterAvailabilityControllerGetAllAvailabilities200 = Schema.Array(ClusterAvailabilityResponseDto)
+export type ClusterAvailabilityControllerCheckAvailabilityParams = { readonly "location_code"?: string }
+export const ClusterAvailabilityControllerCheckAvailabilityParams = Schema.Struct({ "location_code": Schema.optionalKey(Schema.String.annotate({ "examples": ["FIN-03"] })) })
+export type ClusterAvailabilityControllerCheckAvailability200 = boolean
+export const ClusterAvailabilityControllerCheckAvailability200 = Schema.Boolean
+export type SshkeysControllerGetKeys200 = ReadonlyArray<GetKeysResponseDto>
+export const SshkeysControllerGetKeys200 = Schema.Array(GetKeysResponseDto)
+export type SshkeysControllerAddKeyRequestJson = AddKeyDto
+export const SshkeysControllerAddKeyRequestJson = AddKeyDto
+export type SshkeysControllerDeleteKeysRequestJson = DeleteKeysPublicDto
+export const SshkeysControllerDeleteKeysRequestJson = DeleteKeysPublicDto
+export type SshkeysControllerGetKey200 = GetKeysResponseDto
+export const SshkeysControllerGetKey200 = GetKeysResponseDto
+export type DeprecatedSshkeysControllerGetKeys200 = ReadonlyArray<GetKeysResponseDto>
+export const DeprecatedSshkeysControllerGetKeys200 = Schema.Array(GetKeysResponseDto)
+export type DeprecatedSshkeysControllerAddKeyRequestJson = AddKeyDto
+export const DeprecatedSshkeysControllerAddKeyRequestJson = AddKeyDto
+export type DeprecatedSshkeysControllerDeleteKeysRequestJson = DeleteKeysPublicDto
+export const DeprecatedSshkeysControllerDeleteKeysRequestJson = DeleteKeysPublicDto
+export type DeprecatedSshkeysControllerGetKey200 = GetKeysResponseDto
+export const DeprecatedSshkeysControllerGetKey200 = GetKeysResponseDto
+export type ScriptsControllerGetScriptsParams = { readonly "page"?: number, readonly "pageSize"?: number, readonly "name"?: string, readonly "orderBy"?: "created_at", readonly "orderDirection"?: "asc" | "desc" }
+export const ScriptsControllerGetScriptsParams = Schema.Struct({ "page": Schema.optionalKey(Schema.Number.annotate({ "default": 1 }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "pageSize": Schema.optionalKey(Schema.Number.annotate({ "default": 10 }).check(Schema.isFinite().annotate({ "expected": "a finite number" }))), "name": Schema.optionalKey(Schema.String), "orderBy": Schema.optionalKey(Schema.Literal("created_at").annotate({ "default": "created_at" })), "orderDirection": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "desc" })) })
+export type ScriptsControllerGetScripts200 = ReadonlyArray<GetScriptResponseDto>
+export const ScriptsControllerGetScripts200 = Schema.Array(GetScriptResponseDto)
+export type ScriptsControllerAddScriptRequestJson = AddScriptDto
+export const ScriptsControllerAddScriptRequestJson = AddScriptDto
+export type ScriptsControllerDeleteScriptsRequestJson = DeleteScriptsDto
+export const ScriptsControllerDeleteScriptsRequestJson = DeleteScriptsDto
+export type ScriptsControllerGetScript200 = GetScriptResponseDto
+export const ScriptsControllerGetScript200 = GetScriptResponseDto
+export type LocationsControllerGetVolumeTypes200 = ReadonlyArray<Location>
+export const LocationsControllerGetVolumeTypes200 = Schema.Array(Location)
+export type LongTermControllerGetLongTermPeriodsDeprecated200 = ReadonlyArray<LongTermPeriodResponseDto>
+export const LongTermControllerGetLongTermPeriodsDeprecated200 = Schema.Array(LongTermPeriodResponseDto)
+export type LongTermControllerGetLongTermPeriodsInstances200 = ReadonlyArray<LongTermPeriodResponseDto>
+export const LongTermControllerGetLongTermPeriodsInstances200 = Schema.Array(LongTermPeriodResponseDto)
+export type LongTermControllerGetLongTermPeriodsClusters200 = ReadonlyArray<LongTermPeriodResponseDto>
+export const LongTermControllerGetLongTermPeriodsClusters200 = Schema.Array(LongTermPeriodResponseDto)
+export type ClusterTypesControllerGetInstanceTypesParams = { readonly "currency"?: "usd" | "eur" }
+export const ClusterTypesControllerGetInstanceTypesParams = Schema.Struct({ "currency": Schema.optionalKey(Schema.Literals(["usd", "eur"]).annotate({ "default": "usd", "examples": ["usd"] })) })
+export type ClusterTypesControllerGetInstanceTypes200 = ReadonlyArray<ClusterType>
+export const ClusterTypesControllerGetInstanceTypes200 = Schema.Array(ClusterType)
+export type ContainerTypesControllerGetContainerTypesParams = { readonly "currency"?: "usd" | "eur" }
+export const ContainerTypesControllerGetContainerTypesParams = Schema.Struct({ "currency": Schema.optionalKey(Schema.Literals(["usd", "eur"]).annotate({ "default": "usd", "examples": ["usd"] })) })
+export type ContainerTypesControllerGetContainerTypes200 = ReadonlyArray<ContainerType>
+export const ContainerTypesControllerGetContainerTypes200 = Schema.Array(ContainerType)
+export type ManagedEndpointsControllerGetPricingParams = { readonly "currency"?: "usd" | "eur" }
+export const ManagedEndpointsControllerGetPricingParams = Schema.Struct({ "currency": Schema.optionalKey(Schema.Literals(["usd", "eur"]).annotate({ "default": "usd", "examples": ["usd"] })) })
+export type ManagedEndpointsControllerGetPricing200 = ReadonlyArray<ManagedEndpointPrice>
+export const ManagedEndpointsControllerGetPricing200 = Schema.Array(ManagedEndpointPrice)
+export type ContainerRegistryControllerGetContainerRegistryPricingParams = { readonly "currency"?: "usd" | "eur" }
+export const ContainerRegistryControllerGetContainerRegistryPricingParams = Schema.Struct({ "currency": Schema.optionalKey(Schema.Literals(["usd", "eur"]).annotate({ "default": "usd", "examples": ["usd"] })) })
+export type ContainerRegistryControllerGetContainerRegistryPricing200 = ContainerRegistryPricingResponseDto
+export const ContainerRegistryControllerGetContainerRegistryPricing200 = ContainerRegistryPricingResponseDto
+export type InstanceGroupsPublicControllerList200 = ReadonlyArray<InstanceGroupResponseDto>
+export const InstanceGroupsPublicControllerList200 = Schema.Array(InstanceGroupResponseDto)
+export type InstanceGroupsPublicControllerCreateRequestJson = CreateInstanceGroupDto
+export const InstanceGroupsPublicControllerCreateRequestJson = CreateInstanceGroupDto
+export type InstanceGroupsPublicControllerCreate201 = InstanceGroupResponseDto
+export const InstanceGroupsPublicControllerCreate201 = InstanceGroupResponseDto
+export type InstanceGroupsPublicControllerGet200 = InstanceGroupResponseDto
+export const InstanceGroupsPublicControllerGet200 = InstanceGroupResponseDto
+export type InstanceGroupsPublicControllerUpdateRequestJson = UpdateInstanceGroupDto
+export const InstanceGroupsPublicControllerUpdateRequestJson = UpdateInstanceGroupDto
+export type InstanceGroupsPublicControllerUpdate200 = InstanceGroupResponseDto
+export const InstanceGroupsPublicControllerUpdate200 = InstanceGroupResponseDto
+export type DeploymentLogsPublicApiControllerGetLogsParams = { readonly "container_name"?: string, readonly "pod"?: ReadonlyArray<string>, readonly "search_text"?: string, readonly "since"?: string, readonly "start"?: string, readonly "end"?: string, readonly "order"?: "asc" | "desc", readonly "limit"?: number }
+export const DeploymentLogsPublicApiControllerGetLogsParams = Schema.Struct({ "container_name": Schema.optionalKey(Schema.String.annotate({ "examples": ["app"] })), "pod": Schema.optionalKey(Schema.Array(Schema.String)), "search_text": Schema.optionalKey(Schema.String.annotate({ "examples": ["error"] })), "since": Schema.optionalKey(Schema.String.annotate({ "examples": ["2h"] })), "start": Schema.optionalKey(Schema.String.annotate({ "examples": ["2026-06-01T12:00:00Z"] })), "end": Schema.optionalKey(Schema.String.annotate({ "examples": ["now"] })), "order": Schema.optionalKey(Schema.Literals(["asc", "desc"])), "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 50 }).check(Schema.isFinite().annotate({ "expected": "a finite number" })).check(Schema.isGreaterThanOrEqualTo(1).annotate({ "expected": "a value greater than or equal to 1" })).check(Schema.isLessThanOrEqualTo(1000).annotate({ "expected": "a value less than or equal to 1000" }))) })
+export type DeploymentLogsPublicApiControllerGetLogs200 = ReadonlyArray<DeploymentLogEntryPublicApiResponseDto>
+export const DeploymentLogsPublicApiControllerGetLogs200 = Schema.Array(DeploymentLogEntryPublicApiResponseDto)
+export type JobLogsPublicApiControllerGetLogsParams = { readonly "container_name"?: string, readonly "pod"?: ReadonlyArray<string>, readonly "search_text"?: string, readonly "since"?: string, readonly "start"?: string, readonly "end"?: string, readonly "order"?: "asc" | "desc", readonly "limit"?: number }
+export const JobLogsPublicApiControllerGetLogsParams = Schema.Struct({ "container_name": Schema.optionalKey(Schema.String.annotate({ "examples": ["app"] })), "pod": Schema.optionalKey(Schema.Array(Schema.String)), "search_text": Schema.optionalKey(Schema.String.annotate({ "examples": ["error"] })), "since": Schema.optionalKey(Schema.String.annotate({ "examples": ["2h"] })), "start": Schema.optionalKey(Schema.String.annotate({ "examples": ["2026-06-01T12:00:00Z"] })), "end": Schema.optionalKey(Schema.String.annotate({ "examples": ["now"] })), "order": Schema.optionalKey(Schema.Literals(["asc", "desc"])), "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 50 }).check(Schema.isFinite().annotate({ "expected": "a finite number" })).check(Schema.isGreaterThanOrEqualTo(1).annotate({ "expected": "a value greater than or equal to 1" })).check(Schema.isLessThanOrEqualTo(1000).annotate({ "expected": "a value less than or equal to 1000" }))) })
+export type JobLogsPublicApiControllerGetLogs200 = ReadonlyArray<DeploymentLogEntryPublicApiResponseDto>
+export const JobLogsPublicApiControllerGetLogs200 = Schema.Array(DeploymentLogEntryPublicApiResponseDto)
+export type ScaledJobPublicApiControllerGetList200 = ReadonlyArray<ScaledJobShortInfoResponseDto>
+export const ScaledJobPublicApiControllerGetList200 = Schema.Array(ScaledJobShortInfoResponseDto)
+export type ScaledJobPublicApiControllerCreateNewScaledJobRequestJson = CreateScaledJobDto
+export const ScaledJobPublicApiControllerCreateNewScaledJobRequestJson = CreateScaledJobDto
+export type ScaledJobPublicApiControllerCreateNewScaledJob201 = ScaledJobResponseDto
+export const ScaledJobPublicApiControllerCreateNewScaledJob201 = ScaledJobResponseDto
+export type ScaledJobPublicApiControllerGetByName200 = ScaledJobResponseDto
+export const ScaledJobPublicApiControllerGetByName200 = ScaledJobResponseDto
+export type ScaledJobPublicApiControllerDeleteByNameParams = { readonly "timeout"?: number }
+export const ScaledJobPublicApiControllerDeleteByNameParams = Schema.Struct({ "timeout": Schema.optionalKey(Schema.Number.annotate({ "default": 60000, "examples": [60000] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })).check(Schema.isGreaterThanOrEqualTo(0).annotate({ "expected": "a value greater than or equal to 0" })).check(Schema.isLessThanOrEqualTo(300000).annotate({ "expected": "a value less than or equal to 300000" }))) })
+export type ScaledJobPublicApiControllerUpdateScaledJobByNameRequestJson = PatchScaledJobDto
+export const ScaledJobPublicApiControllerUpdateScaledJobByNameRequestJson = PatchScaledJobDto
+export type ScaledJobPublicApiControllerUpdateScaledJobByName200 = ScaledJobResponseDto
+export const ScaledJobPublicApiControllerUpdateScaledJobByName200 = ScaledJobResponseDto
+export type ScaledJobPublicApiControllerGetScalingOptionsByName200 = ScalingOptionsResponseDto
+export const ScaledJobPublicApiControllerGetScalingOptionsByName200 = ScalingOptionsResponseDto
+export type ScaledJobPublicApiControllerGetScaledJobStatusByName200 = GetScaledJobStatusResponseDto
+export const ScaledJobPublicApiControllerGetScaledJobStatusByName200 = GetScaledJobStatusResponseDto
+export type PublicApiControllerGetDeploymentsList200 = ReadonlyArray<DeploymentPublicApiResponseDto>
+export const PublicApiControllerGetDeploymentsList200 = Schema.Array(DeploymentPublicApiResponseDto)
+export type PublicApiControllerCreateNewDeploymentRequestJson = CreateDeploymentPublicApiDto
+export const PublicApiControllerCreateNewDeploymentRequestJson = CreateDeploymentPublicApiDto
+export type PublicApiControllerCreateNewDeployment201 = DeploymentPublicApiResponseDto
+export const PublicApiControllerCreateNewDeployment201 = DeploymentPublicApiResponseDto
+export type PublicApiControllerGetDeploymentByName200 = DeploymentPublicApiResponseDto
+export const PublicApiControllerGetDeploymentByName200 = DeploymentPublicApiResponseDto
+export type PublicApiControllerDeleteDeploymentByNameParams = { readonly "timeout"?: number }
+export const PublicApiControllerDeleteDeploymentByNameParams = Schema.Struct({ "timeout": Schema.optionalKey(Schema.Number.annotate({ "default": 60000, "examples": [60000] }).check(Schema.isFinite().annotate({ "expected": "a finite number" })).check(Schema.isGreaterThanOrEqualTo(0).annotate({ "expected": "a value greater than or equal to 0" })).check(Schema.isLessThanOrEqualTo(300000).annotate({ "expected": "a value less than or equal to 300000" }))) })
+export type PublicApiControllerUpdateDeploymentByNameRequestJson = PatchDeploymentPublicApiDto
+export const PublicApiControllerUpdateDeploymentByNameRequestJson = PatchDeploymentPublicApiDto
+export type PublicApiControllerUpdateDeploymentByName200 = DeploymentPublicApiResponseDto
+export const PublicApiControllerUpdateDeploymentByName200 = DeploymentPublicApiResponseDto
+export type PublicApiControllerGetReplicasStatusByName200 = GetDeploymentStatusResponseDto
+export const PublicApiControllerGetReplicasStatusByName200 = GetDeploymentStatusResponseDto
+export type PublicApiControllerGetDeploymentScalingOptionsByName200 = ScalingOptionsPublicApiDto
+export const PublicApiControllerGetDeploymentScalingOptionsByName200 = ScalingOptionsPublicApiDto
+export type PublicApiControllerUpdateDeploymentScalingOptionsByNameRequestJson = PatchScalingOptionsPublicApiDto
+export const PublicApiControllerUpdateDeploymentScalingOptionsByNameRequestJson = PatchScalingOptionsPublicApiDto
+export type PublicApiControllerUpdateDeploymentScalingOptionsByName200 = ScalingOptionsPublicApiDto
+export const PublicApiControllerUpdateDeploymentScalingOptionsByName200 = ScalingOptionsPublicApiDto
+export type PublicApiControllerGetDeploymentReplicasByName200 = ReplicasPublicApiDto
+export const PublicApiControllerGetDeploymentReplicasByName200 = ReplicasPublicApiDto
+export type PublicApiControllerGetDeploymentEnvironmentVariables200 = ReadonlyArray<GetDeploymentEnvVariablesPublicApiResponseDto>
+export const PublicApiControllerGetDeploymentEnvironmentVariables200 = Schema.Array(GetDeploymentEnvVariablesPublicApiResponseDto)
+export type PublicApiControllerAddEnvironmentVariablesToContainerRequestJson = CreateOrPatchEnvironmentVariablesDto
+export const PublicApiControllerAddEnvironmentVariablesToContainerRequestJson = CreateOrPatchEnvironmentVariablesDto
+export type PublicApiControllerAddEnvironmentVariablesToContainer200 = ReadonlyArray<GetDeploymentEnvVariablesPublicApiResponseDto>
+export const PublicApiControllerAddEnvironmentVariablesToContainer200 = Schema.Array(GetDeploymentEnvVariablesPublicApiResponseDto)
+export type PublicApiControllerDeleteEnvironmentVariablesOfContainerRequestJson = DeleteEnvironmentVariablesPublicApiDto
+export const PublicApiControllerDeleteEnvironmentVariablesOfContainerRequestJson = DeleteEnvironmentVariablesPublicApiDto
+export type PublicApiControllerDeleteEnvironmentVariablesOfContainer200 = ReadonlyArray<GetDeploymentEnvVariablesPublicApiResponseDto>
+export const PublicApiControllerDeleteEnvironmentVariablesOfContainer200 = Schema.Array(GetDeploymentEnvVariablesPublicApiResponseDto)
+export type PublicApiControllerUpdateEnvironmentVariablesOfContainerRequestJson = CreateOrPatchEnvironmentVariablesDto
+export const PublicApiControllerUpdateEnvironmentVariablesOfContainerRequestJson = CreateOrPatchEnvironmentVariablesDto
+export type PublicApiControllerUpdateEnvironmentVariablesOfContainer200 = ReadonlyArray<GetDeploymentEnvVariablesPublicApiResponseDto>
+export const PublicApiControllerUpdateEnvironmentVariablesOfContainer200 = Schema.Array(GetDeploymentEnvVariablesPublicApiResponseDto)
+export type PublicApiControllerGetComputeAndAvailability200 = ReadonlyArray<GetComputeResourcesPublicApiResponseDto>
+export const PublicApiControllerGetComputeAndAvailability200 = Schema.Array(GetComputeResourcesPublicApiResponseDto)
+export type PublicApiControllerGetSecrets200 = ReadonlyArray<GetSecretsPublicApiResponseDto>
+export const PublicApiControllerGetSecrets200 = Schema.Array(GetSecretsPublicApiResponseDto)
+export type PublicApiControllerAddSecretRequestJson = CreateSecretPublicApiDto
+export const PublicApiControllerAddSecretRequestJson = CreateSecretPublicApiDto
+export type PublicApiControllerDeleteSecretParams = { readonly "force"?: boolean }
+export const PublicApiControllerDeleteSecretParams = Schema.Struct({ "force": Schema.optionalKey(Schema.Boolean.annotate({ "examples": [true] })) })
+export type PublicApiControllerGetFilesetSecrets200 = ReadonlyArray<GetFilesetSecretsPublicApiResponseDto>
+export const PublicApiControllerGetFilesetSecrets200 = Schema.Array(GetFilesetSecretsPublicApiResponseDto)
+export type PublicApiControllerAddFilesetSecretRequestJson = CreateFilesetSecretPublicApiDto
+export const PublicApiControllerAddFilesetSecretRequestJson = CreateFilesetSecretPublicApiDto
+export type PublicApiControllerDeleteFilesetSecretParams = { readonly "force"?: boolean }
+export const PublicApiControllerDeleteFilesetSecretParams = Schema.Struct({ "force": Schema.optionalKey(Schema.Boolean.annotate({ "examples": [true] })) })
+export type PublicApiControllerGetRegistryCredentials200 = ReadonlyArray<GetRegistryCredentialsPublicApiResponseDto>
+export const PublicApiControllerGetRegistryCredentials200 = Schema.Array(GetRegistryCredentialsPublicApiResponseDto)
+export type PublicApiControllerAddRegistryCredentialsRequestJson = CreateRegistryCredentialsPublicApiDto
+export const PublicApiControllerAddRegistryCredentialsRequestJson = CreateRegistryCredentialsPublicApiDto
+export type PublicApiControllerDeleteRegistryCredentialsParams = { readonly "force"?: boolean }
+export const PublicApiControllerDeleteRegistryCredentialsParams = Schema.Struct({ "force": Schema.optionalKey(Schema.Boolean.annotate({ "examples": [true] })) })
+export type ContainerDeploymentTemplatesPublicApiControllerListTemplates200 = ReadonlyArray<ContainerDeploymentTemplatePublicApiDto>
+export const ContainerDeploymentTemplatesPublicApiControllerListTemplates200 = Schema.Array(ContainerDeploymentTemplatePublicApiDto)
+export type ContainerDeploymentTemplatesPublicApiControllerGetTemplate200 = ContainerDeploymentTemplateDetailPublicApiDto
+export const ContainerDeploymentTemplatesPublicApiControllerGetTemplate200 = ContainerDeploymentTemplateDetailPublicApiDto
+export type ContainerDeploymentTemplatesPublicApiControllerDeployTemplateRequestJson = DeployContainerDeploymentTemplatePublicApiDto
+export const ContainerDeploymentTemplatesPublicApiControllerDeployTemplateRequestJson = DeployContainerDeploymentTemplatePublicApiDto
+export type ContainerDeploymentTemplatesPublicApiControllerDeployTemplate201 = DeploymentPublicApiResponseDto
+export const ContainerDeploymentTemplatesPublicApiControllerDeployTemplate201 = DeploymentPublicApiResponseDto
+export type DeploymentSystemLogsPublicApiControllerGetLogsParams = { readonly "reason"?: ReadonlyArray<string>, readonly "involved_object"?: ReadonlyArray<string>, readonly "search_text"?: string, readonly "since"?: string, readonly "start"?: string, readonly "end"?: Schema.Json, readonly "order"?: "asc" | "desc", readonly "limit"?: number }
+export const DeploymentSystemLogsPublicApiControllerGetLogsParams = Schema.Struct({ "reason": Schema.optionalKey(Schema.Array(Schema.String)), "involved_object": Schema.optionalKey(Schema.Array(Schema.String)), "search_text": Schema.optionalKey(Schema.String), "since": Schema.optionalKey(Schema.String.annotate({ "default": "1d" })), "start": Schema.optionalKey(Schema.String), "end": Schema.optionalKey(Schema.Json.annotate({ "expected": "JSON value", "default": "now" })), "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "desc" })), "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 50 }).check(Schema.isFinite().annotate({ "expected": "a finite number" })).check(Schema.isGreaterThanOrEqualTo(1).annotate({ "expected": "a value greater than or equal to 1" })).check(Schema.isLessThanOrEqualTo(1000).annotate({ "expected": "a value less than or equal to 1000" }))) })
+export type DeploymentSystemLogsPublicApiControllerGetLogs200 = ReadonlyArray<SystemLogEntryPublicApiResponseDto>
+export const DeploymentSystemLogsPublicApiControllerGetLogs200 = Schema.Array(SystemLogEntryPublicApiResponseDto)
+export type JobSystemLogsPublicApiControllerGetLogsParams = { readonly "reason"?: ReadonlyArray<string>, readonly "involved_object"?: ReadonlyArray<string>, readonly "search_text"?: string, readonly "since"?: string, readonly "start"?: string, readonly "end"?: Schema.Json, readonly "order"?: "asc" | "desc", readonly "limit"?: number }
+export const JobSystemLogsPublicApiControllerGetLogsParams = Schema.Struct({ "reason": Schema.optionalKey(Schema.Array(Schema.String)), "involved_object": Schema.optionalKey(Schema.Array(Schema.String)), "search_text": Schema.optionalKey(Schema.String), "since": Schema.optionalKey(Schema.String.annotate({ "default": "1d" })), "start": Schema.optionalKey(Schema.String), "end": Schema.optionalKey(Schema.Json.annotate({ "expected": "JSON value", "default": "now" })), "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "desc" })), "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 50 }).check(Schema.isFinite().annotate({ "expected": "a finite number" })).check(Schema.isGreaterThanOrEqualTo(1).annotate({ "expected": "a value greater than or equal to 1" })).check(Schema.isLessThanOrEqualTo(1000).annotate({ "expected": "a value less than or equal to 1000" }))) })
+export type JobSystemLogsPublicApiControllerGetLogs200 = ReadonlyArray<SystemLogEntryPublicApiResponseDto>
+export const JobSystemLogsPublicApiControllerGetLogs200 = Schema.Array(SystemLogEntryPublicApiResponseDto)
+
+export interface OperationConfig {
+  /**
+   * Whether or not the response should be included in the value returned from
+   * an operation.
+   *
+   * If set to `true`, a tuple of `[A, HttpClientResponse]` will be returned,
+   * where `A` is the success type of the operation.
+   *
+   * If set to `false`, only the success type of the operation will be returned.
+   */
+  readonly includeResponse?: boolean | undefined
+}
+
+/**
+ * A utility type which optionally includes the response in the return result
+ * of an operation based upon the value of the `includeResponse` configuration
+ * option.
+ */
+export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
+  readonly includeResponse: true
+} ? [A, HttpClientResponse.HttpClientResponse] : A
+
+export const make = (
+  httpClient: HttpClient.HttpClient,
+  options: {
+    readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
+  } = {}
+): Verda => {
+  const unexpectedStatus = (response: HttpClientResponse.HttpClientResponse) =>
+    Effect.flatMap(
+      Effect.orElseSucceed(response.json, () => "Unexpected status code"),
+      (description) =>
+        Effect.fail(
+          new HttpClientError.HttpClientError({
+            reason: new HttpClientError.StatusCodeError({
+              request: response.request,
+              response,
+              description: typeof description === "string" ? description : JSON.stringify(description),
+            }),
+          }),
+        ),
+    )
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => (
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<any, any>,
+  ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
+    const withOptionalResponse = (
+      config?.includeResponse
+        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response])
+        : (response: HttpClientResponse.HttpClientResponse) => f(response)
+    ) as any
+    return options?.transformClient
+      ? (request) =>
+          Effect.flatMap(
+            Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
+            withOptionalResponse
+          )
+      : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
+  }
+  const __encodePathParam = encodeURIComponent
+  const __makePathRequest = (
+    method: (url: string) => HttpClientRequest.HttpClientRequest,
+    parameters: ReadonlyArray<string>,
+    getPath: () => string,
+  ) => Effect.suspend(() => {
+    const fail = (description: string, cause?: unknown) => Effect.fail(
+      new HttpClientError.HttpClientError({
+        reason: new HttpClientError.InvalidUrlError({
+          request: method(""),
+          cause,
+          description,
+        }),
+      }),
+    )
+    if (parameters.some((value) => value === "" || /^(?:\.|%2e){1,2}$/i.test(value))) {
+      return fail("Path parameters must be non-empty and cannot be dot segments")
+    }
+    let path: string
+    try {
+      path = getPath()
+    } catch (cause) {
+      return fail("Failed to encode path parameter", cause)
+    }
+    if (path.split("/").some((segment) => /^(?:\.|%2e){1,2}$/i.test(segment))) {
+      return fail("Request paths cannot contain dot segments")
+    }
+    return Effect.succeed(method(path))
+  })
+  const decodeVoidError = <const Tag extends string>(tag: Tag) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      Effect.fail(VerdaError(tag, undefined, response))
+  const decodeSuccess =
+    <Schema extends Schema.Constraint>(schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      HttpClientResponse.schemaBodyJson(schema)(response)
+  const decodeError =
+    <const Tag extends string, Schema extends Schema.Constraint>(tag: Tag, schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      Effect.flatMap(
+        HttpClientResponse.schemaBodyJson(schema)(response),
+        (cause) => Effect.fail(VerdaError(tag, cause, response)),
+      )
+  return {
+    httpClient,
+    "Oauth2ControllerGetAccessToken": (options) => HttpClientRequest.post("/v1/oauth2/token").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(Oauth2ControllerGetAccessToken200),
+      "400": decodeError("Oauth2ControllerGetAccessToken400", Oauth2ControllerGetAccessToken400),
+      "401": decodeError("Oauth2ControllerGetAccessToken401", Oauth2ControllerGetAccessToken401),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "BalanceControllerGetBalance": (options) => HttpClientRequest.get("/v1/balance").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(BalanceControllerGetBalance200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ImagesControllerGetImageTypes": (options) => HttpClientRequest.get("/v1/images").pipe(
+      HttpClientRequest.setUrlParams({ "instance_type": options?.params?.["instance_type"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ImagesControllerGetImageTypes200),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ImagesControllerGetClusterImageTypes": (options) => HttpClientRequest.get("/v1/images/cluster").pipe(
+      HttpClientRequest.setUrlParams({ "instance_type": options?.params?.["instance_type"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ImagesControllerGetClusterImageTypes200),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "AuditLogControllerGetAuditLog": (options) => HttpClientRequest.get("/v1/audit/log").pipe(
+      HttpClientRequest.setUrlParams({ "action": options?.params?.["action"] as any, "object_type": options?.params?.["object_type"] as any, "start_date": options?.params?.["start_date"] as any, "end_date": options?.params?.["end_date"] as any, "page_size": options?.params?.["page_size"] as any, "cursor": options?.params?.["cursor"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(AuditLogControllerGetAuditLog200),
+      "403": decodeVoidError("403"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "AuditLogControllerDownloadAuditLog": (options) => HttpClientRequest.post("/v1/audit/log/download").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(AuditLogControllerDownloadAuditLog200),
+      "403": decodeVoidError("403"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "JournalControllerGetJournal": (options) => HttpClientRequest.get("/v1/journal").pipe(
+      HttpClientRequest.setUrlParams({ "page": options?.params?.["page"] as any, "pageSize": options?.params?.["pageSize"] as any, "compute_id": options?.params?.["compute_id"] as any, "volume_id": options?.params?.["volume_id"] as any, "action_code": options?.params?.["action_code"] as any, "object_type": options?.params?.["object_type"] as any, "hydrate": options?.params?.["hydrate"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(JournalControllerGetJournal200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "JournalControllerGetComputeJournal": (computeId, options) => __makePathRequest(HttpClientRequest.get, [computeId], () => "/v1/journal/compute/" + __encodePathParam(computeId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "page": options?.params?.["page"] as any, "pageSize": options?.params?.["pageSize"] as any, "compute_id": options?.params?.["compute_id"] as any, "volume_id": options?.params?.["volume_id"] as any, "action_code": options?.params?.["action_code"] as any, "object_type": options?.params?.["object_type"] as any, "hydrate": options?.params?.["hydrate"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(JournalControllerGetComputeJournal200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "JournalControllerGetVolumeJournal": (volumeId, options) => __makePathRequest(HttpClientRequest.get, [volumeId], () => "/v1/journal/volume/" + __encodePathParam(volumeId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "page": options?.params?.["page"] as any, "pageSize": options?.params?.["pageSize"] as any, "compute_id": options?.params?.["compute_id"] as any, "volume_id": options?.params?.["volume_id"] as any, "action_code": options?.params?.["action_code"] as any, "object_type": options?.params?.["object_type"] as any, "hydrate": options?.params?.["hydrate"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(JournalControllerGetVolumeJournal200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "VolumesControllerGetVolumes": (options) => HttpClientRequest.get("/v1/volumes").pipe(
+      HttpClientRequest.setUrlParams({ "status": options?.params?.["status"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(VolumesControllerGetVolumes200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "VolumesControllerPerformActions": (options) => HttpClientRequest.put("/v1/volumes").pipe(
+      HttpClientRequest.setHeaders({ "user-agent": options.params["user-agent"] ?? undefined, "cf-connecting-ip": options.params["cf-connecting-ip"] ?? undefined }),
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "202": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ),
+    "VolumesControllerCreateVolume": (options) => HttpClientRequest.post("/v1/volumes").pipe(
+      HttpClientRequest.setHeaders({ "user-agent": options.params["user-agent"] ?? undefined, "cf-connecting-ip": options.params["cf-connecting-ip"] ?? undefined }),
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "403": decodeVoidError("403"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "VolumesControllerGetVolumesInTrash": (options) => HttpClientRequest.get("/v1/volumes/trash").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(VolumesControllerGetVolumesInTrash200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "VolumesControllerGetVolumeById": (volumeId, options) => __makePathRequest(HttpClientRequest.get, [volumeId], () => "/v1/volumes/" + __encodePathParam(volumeId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(VolumesControllerGetVolumeById200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "VolumesControllerDeleteVolumeById": (volumeId, options) => __makePathRequest(HttpClientRequest.delete, [volumeId], () => "/v1/volumes/" + __encodePathParam(volumeId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setHeaders({ "user-agent": options.params["user-agent"] ?? undefined, "cf-connecting-ip": options.params["cf-connecting-ip"] ?? undefined }),
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "202": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "VolumesControllerAddTag": (volumeId, options) => __makePathRequest(HttpClientRequest.post, [volumeId], () => "/v1/volumes/" + __encodePathParam(volumeId) + "/tags").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(VolumesControllerAddTag201),
+      "403": decodeVoidError("403"),
+      "409": decodeVoidError("409"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "VolumesControllerDeleteTag": (volumeId, tagId, options) => __makePathRequest(HttpClientRequest.delete, [volumeId, tagId], () => "/v1/volumes/" + __encodePathParam(volumeId) + "/tags/" + __encodePathParam(tagId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "204": () => Effect.void,
+      "403": decodeVoidError("403"),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "VolumeTypesControllerGetVolumeTypes": (options) => HttpClientRequest.get("/v1/volume-types").pipe(
+      HttpClientRequest.setUrlParams({ "currency": options?.params?.["currency"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(VolumeTypesControllerGetVolumeTypes200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstancesControllerGetInstances": (options) => HttpClientRequest.get("/v1/instances").pipe(
+      HttpClientRequest.setUrlParams({ "status": options?.params?.["status"] as any, "computeId": options?.params?.["computeId"] as any, "tag": options?.params?.["tag"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(InstancesControllerGetInstances200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstancesControllerPerformActions": (options) => HttpClientRequest.put("/v1/instances").pipe(
+      HttpClientRequest.setHeaders({ "user-agent": options.params["user-agent"] ?? undefined, "cf-connecting-ip": options.params["cf-connecting-ip"] ?? undefined }),
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "202": decodeSuccess(InstancesControllerPerformActions202),
+      "207": decodeSuccess(InstancesControllerPerformActions207),
+      "204": () => Effect.void,
+      "400": decodeVoidError("400"),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstancesControllerDeployInstance": (options) => HttpClientRequest.post("/v1/instances").pipe(
+      HttpClientRequest.setHeaders({ "user-agent": options.params["user-agent"] ?? undefined, "cf-connecting-ip": options.params["cf-connecting-ip"] ?? undefined }),
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstancesControllerGetInstanceTypesDeprecated": (options) => HttpClientRequest.get("/v1/instances/types").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstancesControllerGetInstanceById": (instanceId, options) => __makePathRequest(HttpClientRequest.get, [instanceId], () => "/v1/instances/" + __encodePathParam(instanceId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(InstancesControllerGetInstanceById200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "InstancesControllerCheckAvailabilityDeprecated": (instanceType, options) => __makePathRequest(HttpClientRequest.get, [instanceType], () => "/v1/instances/availability/" + __encodePathParam(instanceType) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "InstancesControllerPerformActionDeprecated": (options) => HttpClientRequest.post("/v1/instances/action").pipe(
+      HttpClientRequest.setHeaders({ "user-agent": options.params["user-agent"] ?? undefined, "cf-connecting-ip": options.params["cf-connecting-ip"] ?? undefined }),
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "202": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstancesControllerAddTag": (instanceId, options) => __makePathRequest(HttpClientRequest.post, [instanceId], () => "/v1/instances/" + __encodePathParam(instanceId) + "/tags").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(InstancesControllerAddTag201),
+      "403": decodeVoidError("403"),
+      "409": decodeVoidError("409"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "InstancesControllerDeleteTag": (instanceId, tagId, options) => __makePathRequest(HttpClientRequest.delete, [instanceId, tagId], () => "/v1/instances/" + __encodePathParam(instanceId) + "/tags/" + __encodePathParam(tagId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "204": () => Effect.void,
+      "403": decodeVoidError("403"),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ClustersControllerGetInstances": (options) => HttpClientRequest.get("/v1/clusters").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ClustersControllerGetInstances200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ClustersControllerPerformActions": (options) => HttpClientRequest.put("/v1/clusters").pipe(
+      HttpClientRequest.setHeaders({ "user-agent": options.params["user-agent"] ?? undefined, "cf-connecting-ip": options.params["cf-connecting-ip"] ?? undefined }),
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "202": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ClustersControllerDeployCluster": (options) => HttpClientRequest.post("/v1/clusters").pipe(
+      HttpClientRequest.setHeaders({ "user-agent": options.params["user-agent"] ?? undefined, "cf-connecting-ip": options.params["cf-connecting-ip"] ?? undefined }),
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ClustersControllerDeployCluster202),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ClustersControllerGetClusterById": (id, options) => __makePathRequest(HttpClientRequest.get, [id], () => "/v1/clusters/" + __encodePathParam(id) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ClustersControllerGetClusterById200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ClustersControllerPerformClusterNodeAction": (clusterId, nodeId, options) => __makePathRequest(HttpClientRequest.post, [clusterId, nodeId], () => "/v1/clusters/" + __encodePathParam(clusterId) + "/nodes/" + __encodePathParam(nodeId) + "/actions").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setHeaders({ "user-agent": options.params["user-agent"] ?? undefined, "cf-connecting-ip": options.params["cf-connecting-ip"] ?? undefined }),
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "202": () => Effect.void,
+      "400": decodeVoidError("400"),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ClustersControllerAddTag": (id, options) => __makePathRequest(HttpClientRequest.post, [id], () => "/v1/clusters/" + __encodePathParam(id) + "/tags").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ClustersControllerAddTag201),
+      "403": decodeVoidError("403"),
+      "409": decodeVoidError("409"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ClustersControllerDeleteTag": (id, tagId, options) => __makePathRequest(HttpClientRequest.delete, [id, tagId], () => "/v1/clusters/" + __encodePathParam(id) + "/tags/" + __encodePathParam(tagId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "204": () => Effect.void,
+      "403": decodeVoidError("403"),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "InstanceTypesControllerGetInstanceTypes": (options) => HttpClientRequest.get("/v1/instance-types").pipe(
+      HttpClientRequest.setUrlParams({ "currency": options?.params?.["currency"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(InstanceTypesControllerGetInstanceTypes200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstanceTypesControllerGetDailyDynamicPriceHistory": (options) => HttpClientRequest.get("/v1/instance-types/price-history").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstanceAvailabilityControllerGetAllAvailabilities": (options) => HttpClientRequest.get("/v1/instance-availability").pipe(
+      HttpClientRequest.setUrlParams({ "isSpot": options?.params?.["isSpot"] as any, "locationCode": options?.params?.["locationCode"] as any, "is_spot": options?.params?.["is_spot"] as any, "location_code": options?.params?.["location_code"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(InstanceAvailabilityControllerGetAllAvailabilities200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstanceAvailabilityControllerCheckAvailability": (instanceType, options) => __makePathRequest(HttpClientRequest.get, [instanceType], () => "/v1/instance-availability/" + __encodePathParam(instanceType) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "isSpot": options?.params?.["isSpot"] as any, "locationCode": options?.params?.["locationCode"] as any, "is_spot": options?.params?.["is_spot"] as any, "location_code": options?.params?.["location_code"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(InstanceAvailabilityControllerCheckAvailability200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ClusterAvailabilityControllerGetAllAvailabilities": (options) => HttpClientRequest.get("/v1/cluster-availability").pipe(
+      HttpClientRequest.setUrlParams({ "location_code": options?.params?.["location_code"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ClusterAvailabilityControllerGetAllAvailabilities200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ClusterAvailabilityControllerCheckAvailability": (clusterType, options) => __makePathRequest(HttpClientRequest.get, [clusterType], () => "/v1/cluster-availability/" + __encodePathParam(clusterType) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "location_code": options?.params?.["location_code"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ClusterAvailabilityControllerCheckAvailability200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "SshkeysControllerGetKeys": (options) => HttpClientRequest.get("/v1/ssh-keys").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(SshkeysControllerGetKeys200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "SshkeysControllerAddKey": (options) => HttpClientRequest.post("/v1/ssh-keys").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      orElse: unexpectedStatus
+    }))
+    ),
+    "SshkeysControllerDeleteKeys": (options) => HttpClientRequest.delete("/v1/ssh-keys").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ),
+    "SshkeysControllerGetKey": (sshKeyId, options) => __makePathRequest(HttpClientRequest.get, [sshKeyId], () => "/v1/ssh-keys/" + __encodePathParam(sshKeyId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(SshkeysControllerGetKey200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "SshkeysControllerDeleteKey": (sshKeyId, options) => __makePathRequest(HttpClientRequest.delete, [sshKeyId], () => "/v1/ssh-keys/" + __encodePathParam(sshKeyId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "DeprecatedSshkeysControllerGetKeys": (options) => HttpClientRequest.get("/v1/sshkeys").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(DeprecatedSshkeysControllerGetKeys200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "DeprecatedSshkeysControllerAddKey": (options) => HttpClientRequest.post("/v1/sshkeys").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      orElse: unexpectedStatus
+    }))
+    ),
+    "DeprecatedSshkeysControllerDeleteKeys": (options) => HttpClientRequest.delete("/v1/sshkeys").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ),
+    "DeprecatedSshkeysControllerGetKey": (sshKeyId, options) => __makePathRequest(HttpClientRequest.get, [sshKeyId], () => "/v1/sshkeys/" + __encodePathParam(sshKeyId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(DeprecatedSshkeysControllerGetKey200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "DeprecatedSshkeysControllerDeleteKey": (sshKeyId, options) => __makePathRequest(HttpClientRequest.delete, [sshKeyId], () => "/v1/sshkeys/" + __encodePathParam(sshKeyId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ScriptsControllerGetScripts": (options) => HttpClientRequest.get("/v1/scripts").pipe(
+      HttpClientRequest.setUrlParams({ "page": options?.params?.["page"] as any, "pageSize": options?.params?.["pageSize"] as any, "name": options?.params?.["name"] as any, "orderBy": options?.params?.["orderBy"] as any, "orderDirection": options?.params?.["orderDirection"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ScriptsControllerGetScripts200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ScriptsControllerAddScript": (options) => HttpClientRequest.post("/v1/scripts").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ScriptsControllerDeleteScripts": (options) => HttpClientRequest.delete("/v1/scripts").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ScriptsControllerGetScript": (scriptId, options) => __makePathRequest(HttpClientRequest.get, [scriptId], () => "/v1/scripts/" + __encodePathParam(scriptId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ScriptsControllerGetScript200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ScriptsControllerDeleteKey": (scriptId, options) => __makePathRequest(HttpClientRequest.delete, [scriptId], () => "/v1/scripts/" + __encodePathParam(scriptId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "LocationsControllerGetVolumeTypes": (options) => HttpClientRequest.get("/v1/locations").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(LocationsControllerGetVolumeTypes200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "LongTermControllerGetLongTermPeriodsDeprecated": (options) => HttpClientRequest.get("/v1/long-term/periods").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(LongTermControllerGetLongTermPeriodsDeprecated200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "LongTermControllerGetLongTermPeriodsInstances": (options) => HttpClientRequest.get("/v1/long-term/periods/instances").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(LongTermControllerGetLongTermPeriodsInstances200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "LongTermControllerGetLongTermPeriodsClusters": (options) => HttpClientRequest.get("/v1/long-term/periods/clusters").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(LongTermControllerGetLongTermPeriodsClusters200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ClusterTypesControllerGetInstanceTypes": (options) => HttpClientRequest.get("/v1/cluster-types").pipe(
+      HttpClientRequest.setUrlParams({ "currency": options?.params?.["currency"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ClusterTypesControllerGetInstanceTypes200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ContainerTypesControllerGetContainerTypes": (options) => HttpClientRequest.get("/v1/container-types").pipe(
+      HttpClientRequest.setUrlParams({ "currency": options?.params?.["currency"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ContainerTypesControllerGetContainerTypes200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ManagedEndpointsControllerGetPricing": (options) => HttpClientRequest.get("/v1/managed-endpoints/pricing").pipe(
+      HttpClientRequest.setUrlParams({ "currency": options?.params?.["currency"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ManagedEndpointsControllerGetPricing200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ContainerRegistryControllerGetContainerRegistryPricing": (options) => HttpClientRequest.get("/v1/container-registry/pricing").pipe(
+      HttpClientRequest.setUrlParams({ "currency": options?.params?.["currency"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ContainerRegistryControllerGetContainerRegistryPricing200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstanceGroupsPublicControllerList": (options) => HttpClientRequest.get("/v1/instance-groups").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(InstanceGroupsPublicControllerList200),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstanceGroupsPublicControllerCreate": (options) => HttpClientRequest.post("/v1/instance-groups").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(InstanceGroupsPublicControllerCreate201),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "InstanceGroupsPublicControllerGet": (instanceGroupId, options) => __makePathRequest(HttpClientRequest.get, [instanceGroupId], () => "/v1/instance-groups/" + __encodePathParam(instanceGroupId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(InstanceGroupsPublicControllerGet200),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "InstanceGroupsPublicControllerRemove": (instanceGroupId, options) => __makePathRequest(HttpClientRequest.delete, [instanceGroupId], () => "/v1/instance-groups/" + __encodePathParam(instanceGroupId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "204": () => Effect.void,
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "InstanceGroupsPublicControllerUpdate": (instanceGroupId, options) => __makePathRequest(HttpClientRequest.patch, [instanceGroupId], () => "/v1/instance-groups/" + __encodePathParam(instanceGroupId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(InstanceGroupsPublicControllerUpdate200),
+      "400": decodeVoidError("400"),
+      "409": decodeVoidError("409"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "DeploymentLogsPublicApiControllerGetLogs": (deploymentName, options) => __makePathRequest(HttpClientRequest.get, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/logs").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "container_name": options?.params?.["container_name"] as any, "pod": options?.params?.["pod"] as any, "search_text": options?.params?.["search_text"] as any, "since": options?.params?.["since"] as any, "start": options?.params?.["start"] as any, "end": options?.params?.["end"] as any, "order": options?.params?.["order"] as any, "limit": options?.params?.["limit"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(DeploymentLogsPublicApiControllerGetLogs200),
+      "401": decodeVoidError("401"),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "JobLogsPublicApiControllerGetLogs": (jobName, options) => __makePathRequest(HttpClientRequest.get, [jobName], () => "/v1/job-deployments/" + __encodePathParam(jobName) + "/logs").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "container_name": options?.params?.["container_name"] as any, "pod": options?.params?.["pod"] as any, "search_text": options?.params?.["search_text"] as any, "since": options?.params?.["since"] as any, "start": options?.params?.["start"] as any, "end": options?.params?.["end"] as any, "order": options?.params?.["order"] as any, "limit": options?.params?.["limit"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(JobLogsPublicApiControllerGetLogs200),
+      "401": decodeVoidError("401"),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ScaledJobPublicApiControllerGetList": (options) => HttpClientRequest.get("/v1/job-deployments").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ScaledJobPublicApiControllerGetList200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ScaledJobPublicApiControllerCreateNewScaledJob": (options) => HttpClientRequest.post("/v1/job-deployments").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ScaledJobPublicApiControllerCreateNewScaledJob201),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ScaledJobPublicApiControllerGetByName": (jobName, options) => __makePathRequest(HttpClientRequest.get, [jobName], () => "/v1/job-deployments/" + __encodePathParam(jobName) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ScaledJobPublicApiControllerGetByName200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ScaledJobPublicApiControllerDeleteByName": (jobName, options) => __makePathRequest(HttpClientRequest.delete, [jobName], () => "/v1/job-deployments/" + __encodePathParam(jobName) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "timeout": options?.params?.["timeout"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ScaledJobPublicApiControllerUpdateScaledJobByName": (jobName, options) => __makePathRequest(HttpClientRequest.patch, [jobName], () => "/v1/job-deployments/" + __encodePathParam(jobName) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ScaledJobPublicApiControllerUpdateScaledJobByName200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ScaledJobPublicApiControllerGetScalingOptionsByName": (jobName, options) => __makePathRequest(HttpClientRequest.get, [jobName], () => "/v1/job-deployments/" + __encodePathParam(jobName) + "/scaling").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ScaledJobPublicApiControllerGetScalingOptionsByName200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ScaledJobPublicApiControllerPurgeQueue": (jobName, options) => __makePathRequest(HttpClientRequest.post, [jobName], () => "/v1/job-deployments/" + __encodePathParam(jobName) + "/purge-queue").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "201": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ScaledJobPublicApiControllerPauseScaledJobByName": (jobName, options) => __makePathRequest(HttpClientRequest.post, [jobName], () => "/v1/job-deployments/" + __encodePathParam(jobName) + "/pause").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "201": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ScaledJobPublicApiControllerResumeScaledJobByName": (jobName, options) => __makePathRequest(HttpClientRequest.post, [jobName], () => "/v1/job-deployments/" + __encodePathParam(jobName) + "/resume").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "201": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ScaledJobPublicApiControllerGetScaledJobStatusByName": (jobName, options) => __makePathRequest(HttpClientRequest.get, [jobName], () => "/v1/job-deployments/" + __encodePathParam(jobName) + "/status").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ScaledJobPublicApiControllerGetScaledJobStatusByName200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerGetDeploymentsList": (options) => HttpClientRequest.get("/v1/container-deployments").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerGetDeploymentsList200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "PublicApiControllerCreateNewDeployment": (options) => HttpClientRequest.post("/v1/container-deployments").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerCreateNewDeployment201),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "PublicApiControllerGetDeploymentByName": (deploymentName, options) => __makePathRequest(HttpClientRequest.get, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerGetDeploymentByName200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerDeleteDeploymentByName": (deploymentName, options) => __makePathRequest(HttpClientRequest.delete, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "timeout": options?.params?.["timeout"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerUpdateDeploymentByName": (deploymentName, options) => __makePathRequest(HttpClientRequest.patch, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerUpdateDeploymentByName200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerGetReplicasStatusByName": (deploymentName, options) => __makePathRequest(HttpClientRequest.get, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/status").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerGetReplicasStatusByName200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerRestartDeploymentByName": (deploymentName, options) => __makePathRequest(HttpClientRequest.post, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/restart").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "201": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerGetDeploymentScalingOptionsByName": (deploymentName, options) => __makePathRequest(HttpClientRequest.get, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/scaling").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerGetDeploymentScalingOptionsByName200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerUpdateDeploymentScalingOptionsByName": (deploymentName, options) => __makePathRequest(HttpClientRequest.patch, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/scaling").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerUpdateDeploymentScalingOptionsByName200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerGetDeploymentReplicasByName": (deploymentName, options) => __makePathRequest(HttpClientRequest.get, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/replicas").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerGetDeploymentReplicasByName200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerPurgeQueue": (deploymentName, options) => __makePathRequest(HttpClientRequest.post, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/purge-queue").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "201": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerPauseDeploymentByName": (deploymentName, options) => __makePathRequest(HttpClientRequest.post, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/pause").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "201": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerResumeDeploymentByName": (deploymentName, options) => __makePathRequest(HttpClientRequest.post, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/resume").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "201": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerGetDeploymentEnvironmentVariables": (deploymentName, options) => __makePathRequest(HttpClientRequest.get, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/environment-variables").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerGetDeploymentEnvironmentVariables200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerAddEnvironmentVariablesToContainer": (deploymentName, options) => __makePathRequest(HttpClientRequest.post, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/environment-variables").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerAddEnvironmentVariablesToContainer200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerDeleteEnvironmentVariablesOfContainer": (deploymentName, options) => __makePathRequest(HttpClientRequest.delete, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/environment-variables").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerDeleteEnvironmentVariablesOfContainer200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerUpdateEnvironmentVariablesOfContainer": (deploymentName, options) => __makePathRequest(HttpClientRequest.patch, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/environment-variables").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerUpdateEnvironmentVariablesOfContainer200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerGetComputeAndAvailability": (options) => HttpClientRequest.get("/v1/serverless-compute-resources").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerGetComputeAndAvailability200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "PublicApiControllerGetSecrets": (options) => HttpClientRequest.get("/v1/secrets").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerGetSecrets200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "PublicApiControllerAddSecret": (options) => HttpClientRequest.post("/v1/secrets").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "201": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "PublicApiControllerDeleteSecret": (secretName, options) => __makePathRequest(HttpClientRequest.delete, [secretName], () => "/v1/secrets/" + __encodePathParam(secretName) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "force": options?.params?.["force"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerGetFilesetSecrets": (options) => HttpClientRequest.get("/v1/file-secrets").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerGetFilesetSecrets200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "PublicApiControllerAddFilesetSecret": (options) => HttpClientRequest.post("/v1/file-secrets").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "201": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "PublicApiControllerDeleteFilesetSecret": (secretName, options) => __makePathRequest(HttpClientRequest.delete, [secretName], () => "/v1/file-secrets/" + __encodePathParam(secretName) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "force": options?.params?.["force"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "PublicApiControllerGetRegistryCredentials": (options) => HttpClientRequest.get("/v1/container-registry-credentials").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(PublicApiControllerGetRegistryCredentials200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "PublicApiControllerAddRegistryCredentials": (options) => HttpClientRequest.post("/v1/container-registry-credentials").pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "201": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "PublicApiControllerDeleteRegistryCredentials": (credentialsName, options) => __makePathRequest(HttpClientRequest.delete, [credentialsName], () => "/v1/container-registry-credentials/" + __encodePathParam(credentialsName) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "force": options?.params?.["force"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "200": () => Effect.void,
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ContainerDeploymentTemplatesPublicApiControllerListTemplates": (options) => HttpClientRequest.get("/v1/container-deployment-templates").pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ContainerDeploymentTemplatesPublicApiControllerListTemplates200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ),
+    "ContainerDeploymentTemplatesPublicApiControllerGetTemplate": (templateId, options) => __makePathRequest(HttpClientRequest.get, [templateId], () => "/v1/container-deployment-templates/" + __encodePathParam(templateId) + "").pipe(
+    Effect.flatMap((request) => request.pipe(
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ContainerDeploymentTemplatesPublicApiControllerGetTemplate200),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "ContainerDeploymentTemplatesPublicApiControllerDeployTemplate": (templateId, options) => __makePathRequest(HttpClientRequest.post, [templateId], () => "/v1/container-deployment-templates/" + __encodePathParam(templateId) + "/deployments").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.bodyJsonUnsafe(options.payload),
+      withResponse(options.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(ContainerDeploymentTemplatesPublicApiControllerDeployTemplate201),
+      "401": decodeVoidError("401"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "DeploymentSystemLogsPublicApiControllerGetLogs": (deploymentName, options) => __makePathRequest(HttpClientRequest.get, [deploymentName], () => "/v1/container-deployments/" + __encodePathParam(deploymentName) + "/system-logs").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "reason": options?.params?.["reason"] as any, "involved_object": options?.params?.["involved_object"] as any, "search_text": options?.params?.["search_text"] as any, "since": options?.params?.["since"] as any, "start": options?.params?.["start"] as any, "end": options?.params?.["end"] as any, "order": options?.params?.["order"] as any, "limit": options?.params?.["limit"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(DeploymentSystemLogsPublicApiControllerGetLogs200),
+      "400": decodeVoidError("400"),
+      "401": decodeVoidError("401"),
+      "403": decodeVoidError("403"),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  ),
+    "JobSystemLogsPublicApiControllerGetLogs": (jobName, options) => __makePathRequest(HttpClientRequest.get, [jobName], () => "/v1/job-deployments/" + __encodePathParam(jobName) + "/system-logs").pipe(
+    Effect.flatMap((request) => request.pipe(
+      HttpClientRequest.setUrlParams({ "reason": options?.params?.["reason"] as any, "involved_object": options?.params?.["involved_object"] as any, "search_text": options?.params?.["search_text"] as any, "since": options?.params?.["since"] as any, "start": options?.params?.["start"] as any, "end": options?.params?.["end"] as any, "order": options?.params?.["order"] as any, "limit": options?.params?.["limit"] as any }),
+      withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(JobSystemLogsPublicApiControllerGetLogs200),
+      "400": decodeVoidError("400"),
+      "401": decodeVoidError("401"),
+      "403": decodeVoidError("403"),
+      "404": decodeVoidError("404"),
+      orElse: unexpectedStatus
+    }))
+    ))
+  )
+  }
+}
+
+export interface Verda {
+  readonly httpClient: HttpClient.HttpClient
+  /**
+* Get access token for public API using client credentials or refresh token.You can manage your credentials at https://console.verda.com, under the **Keys** => **Cloud API credentials** section.
+*/
+readonly "Oauth2ControllerGetAccessToken": <Config extends OperationConfig>(options: { readonly payload: typeof Oauth2ControllerGetAccessTokenRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof Oauth2ControllerGetAccessToken200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"Oauth2ControllerGetAccessToken400", typeof Oauth2ControllerGetAccessToken400.Type> | VerdaError<"Oauth2ControllerGetAccessToken401", typeof Oauth2ControllerGetAccessToken401.Type>>
+  /**
+* Get project balance
+*/
+readonly "BalanceControllerGetBalance": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof BalanceControllerGetBalance200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get images types for instances
+*/
+readonly "ImagesControllerGetImageTypes": <Config extends OperationConfig>(options: { readonly params?: typeof ImagesControllerGetImageTypesParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ImagesControllerGetImageTypes200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"404", undefined>>
+  /**
+* Get images types for cluster
+*/
+readonly "ImagesControllerGetClusterImageTypes": <Config extends OperationConfig>(options: { readonly params?: typeof ImagesControllerGetClusterImageTypesParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ImagesControllerGetClusterImageTypes200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"404", undefined>>
+  /**
+* Retrieves all events for the project, for all resources matching the filter criteria. The format to generate audit log is based on [CloudEvents specification](https://github.com/cloudevents/spec).
+*/
+readonly "AuditLogControllerGetAuditLog": <Config extends OperationConfig>(options: { readonly params?: typeof AuditLogControllerGetAuditLogParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof AuditLogControllerGetAuditLog200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"403", undefined>>
+  /**
+* Streams the full audit log (matching the given filters, within the retention window) to object storage and returns a short-lived pre-signed download URL.
+*/
+readonly "AuditLogControllerDownloadAuditLog": <Config extends OperationConfig>(options: { readonly payload: typeof AuditLogControllerDownloadAuditLogRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof AuditLogControllerDownloadAuditLog200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"403", undefined>>
+  /**
+* Get activity journal for a compute or volume
+*/
+readonly "JournalControllerGetJournal": <Config extends OperationConfig>(options: { readonly params?: typeof JournalControllerGetJournalParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof JournalControllerGetJournal200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get all events for a compute (instance or cluster). Includes also associated volume or shared storage attach / detach events.
+*/
+readonly "JournalControllerGetComputeJournal": <Config extends OperationConfig>(computeId: string, options: { readonly params?: typeof JournalControllerGetComputeJournalParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof JournalControllerGetComputeJournal200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get all events for a volume. Does not include compute-related events.
+*/
+readonly "JournalControllerGetVolumeJournal": <Config extends OperationConfig>(volumeId: string, options: { readonly params?: typeof JournalControllerGetVolumeJournalParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof JournalControllerGetVolumeJournal200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get all volumes
+*/
+readonly "VolumesControllerGetVolumes": <Config extends OperationConfig>(options: { readonly params?: typeof VolumesControllerGetVolumesParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof VolumesControllerGetVolumes200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Perform action on a volume or multiple volumes
+*/
+readonly "VolumesControllerPerformActions": <Config extends OperationConfig>(options: { readonly params: typeof VolumesControllerPerformActionsParams.Encoded; readonly payload: typeof VolumesControllerPerformActionsRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Create volume
+*/
+readonly "VolumesControllerCreateVolume": <Config extends OperationConfig>(options: { readonly params: typeof VolumesControllerCreateVolumeParams.Encoded; readonly payload: typeof VolumesControllerCreateVolumeRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"403", undefined>>
+  /**
+* Get all volumes that are in trash
+*/
+readonly "VolumesControllerGetVolumesInTrash": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof VolumesControllerGetVolumesInTrash200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get volume by id
+*/
+readonly "VolumesControllerGetVolumeById": <Config extends OperationConfig>(volumeId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof VolumesControllerGetVolumeById200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Delete volume by id
+*/
+readonly "VolumesControllerDeleteVolumeById": <Config extends OperationConfig>(volumeId: string, options: { readonly params: typeof VolumesControllerDeleteVolumeByIdParams.Encoded; readonly payload: typeof VolumesControllerDeleteVolumeByIdRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Add one key-value tag. Maximum 10 tags per volume. Omit `value` for a freeform tag. Keys are lowercased. A matching project tag is reused; adding one already linked to this volume returns 409.
+*/
+readonly "VolumesControllerAddTag": <Config extends OperationConfig>(volumeId: string, options: { readonly payload: typeof VolumesControllerAddTagRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof VolumesControllerAddTag201.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"403", undefined> | VerdaError<"409", undefined>>
+  /**
+* Remove a tag from a volume
+*/
+readonly "VolumesControllerDeleteTag": <Config extends OperationConfig>(volumeId: string, tagId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"403", undefined> | VerdaError<"404", undefined>>
+  /**
+* Get volume types
+*/
+readonly "VolumeTypesControllerGetVolumeTypes": <Config extends OperationConfig>(options: { readonly params?: typeof VolumeTypesControllerGetVolumeTypesParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof VolumeTypesControllerGetVolumeTypes200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Return all instances of the project, optionally filtered by status and/or tags.
+* 
+* Tag filters: `tag=key` matches instances carrying the key with any value, `tag=key=value` matches the value exactly (split at the first `=`). Repeat the parameter to require multiple tags at once.
+* 
+* ### Rate limits
+* 
+* This endpoint is rate limited to 120 requests per minute per project.
+*/
+readonly "InstancesControllerGetInstances": <Config extends OperationConfig>(options: { readonly params?: typeof InstancesControllerGetInstancesParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof InstancesControllerGetInstances200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Perform an action on a single or multiple instances.
+* 
+* Note: to `hibernate` an instance, you must first `shutdown` it. All instance volumes would be detached and the instance will be deleted.
+* 
+* **Important**: To remove an instance and stop charging your account, you must `delete` it. Using `shutdown` will keep charging your account.
+* 
+* When deleting an instance, you can specify which of its' attached volumes will be deleted by providing `volume_ids` array. Any attached volumes that are not specified in the array would be detached.
+* 
+* Note: If not providing a `volume_ids` array, only the OS volume will be deleted and the rest detached.
+*/
+readonly "InstancesControllerPerformActions": <Config extends OperationConfig>(options: { readonly params: typeof InstancesControllerPerformActionsParams.Encoded; readonly payload: typeof InstancesControllerPerformActionsRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof InstancesControllerPerformActions202.Type | typeof InstancesControllerPerformActions207.Type | void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"400", undefined> | VerdaError<"404", undefined>>
+  /**
+* Deploy a new instance.
+* 
+* Before deploying an instance, you need to add at least ssh key to be able to access your instance.
+* 
+* Instance types can be listed using the `GET /instance-types` endpoint.
+* 
+* Available images can be listed using the `GET /images` endpoint, using the `image_type` value from the result.
+* 
+* Existing detached OS volumes could be used as an image, put the volume ID as the `image` value.
+* 
+* It's also possible to define new volumes that will be created and attached to the new instance. New volumes location will be the same as the instance.
+* 
+* Existing detached volumes can be attached to the deployed instance by adding their IDs to the `existing_volumes` property.
+*/
+readonly "InstancesControllerDeployInstance": <Config extends OperationConfig>(options: { readonly params: typeof InstancesControllerDeployInstanceParams.Encoded; readonly payload: typeof InstancesControllerDeployInstanceRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get instance types - deprecated
+*/
+readonly "InstancesControllerGetInstanceTypesDeprecated": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get instance by id
+*/
+readonly "InstancesControllerGetInstanceById": <Config extends OperationConfig>(instanceId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof InstancesControllerGetInstanceById200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Check instance type availability - deprecated
+*/
+readonly "InstancesControllerCheckAvailabilityDeprecated": <Config extends OperationConfig>(instanceType: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Perform action - deprecated
+*/
+readonly "InstancesControllerPerformActionDeprecated": <Config extends OperationConfig>(options: { readonly params: typeof InstancesControllerPerformActionDeprecatedParams.Encoded; readonly payload: typeof InstancesControllerPerformActionDeprecatedRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Add one key-value tag. Maximum 10 tags per instance. Omit `value` for a freeform tag. Keys are lowercased. A matching project tag is reused; adding one already linked to this instance returns 409.
+*/
+readonly "InstancesControllerAddTag": <Config extends OperationConfig>(instanceId: string, options: { readonly payload: typeof InstancesControllerAddTagRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof InstancesControllerAddTag201.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"403", undefined> | VerdaError<"409", undefined>>
+  /**
+* Remove a tag from an instance
+*/
+readonly "InstancesControllerDeleteTag": <Config extends OperationConfig>(instanceId: string, tagId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"403", undefined> | VerdaError<"404", undefined>>
+  /**
+* Return all clusters of the project
+*/
+readonly "ClustersControllerGetInstances": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ClustersControllerGetInstances200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Perform actions on one or more clusters.
+* 
+* Note: Only `discontinue` action is allowed for clusters.
+* 
+* **Important**: Local OS storage will be deleted. Shared volumes will be detached and should be deleted manually.
+*/
+readonly "ClustersControllerPerformActions": <Config extends OperationConfig>(options: { readonly params: typeof ClustersControllerPerformActionsParams.Encoded; readonly payload: typeof ClustersControllerPerformActionsRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Deploy a new cluster.
+* 
+* Before deploying add at least one SSH key to enable access to your cluster.
+* 
+* Cluster types can be listed using the `GET /v1/cluster-types` endpoint. Image types can be listed using the `GET /v1/images/cluster` endpoint.
+*/
+readonly "ClustersControllerDeployCluster": <Config extends OperationConfig>(options: { readonly params: typeof ClustersControllerDeployClusterParams.Encoded; readonly payload: typeof ClustersControllerDeployClusterRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof ClustersControllerDeployCluster202.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get cluster by id
+*/
+readonly "ClustersControllerGetClusterById": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ClustersControllerGetClusterById200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Start or shut down a single node inside a cluster (worker, jumphost, or CPU service node).
+* 
+*     Supported `action` values:
+*     - `boot` — start the node
+*     - `shutdown` — graceful shutdown
+*     - `force_shutdown` — force the node off
+*/
+readonly "ClustersControllerPerformClusterNodeAction": <Config extends OperationConfig>(clusterId: string, nodeId: string, options: { readonly params: typeof ClustersControllerPerformClusterNodeActionParams.Encoded; readonly payload: typeof ClustersControllerPerformClusterNodeActionRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"400", undefined> | VerdaError<"404", undefined>>
+  /**
+* Add one key-value tag. Maximum 10 tags per cluster. Omit `value` for a freeform tag. Keys are lowercased. A matching project tag is reused; adding one already linked to this cluster returns 409.
+*/
+readonly "ClustersControllerAddTag": <Config extends OperationConfig>(id: string, options: { readonly payload: typeof ClustersControllerAddTagRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof ClustersControllerAddTag201.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"403", undefined> | VerdaError<"409", undefined>>
+  /**
+* Remove a tag from a cluster
+*/
+readonly "ClustersControllerDeleteTag": <Config extends OperationConfig>(id: string, tagId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"403", undefined> | VerdaError<"404", undefined>>
+  /**
+* Get instance types
+*/
+readonly "InstanceTypesControllerGetInstanceTypes": <Config extends OperationConfig>(options: { readonly params?: typeof InstanceTypesControllerGetInstanceTypesParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof InstanceTypesControllerGetInstanceTypes200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get daily dynamic price history (only the last price update per day) - Not supported anymore
+*/
+readonly "InstanceTypesControllerGetDailyDynamicPriceHistory": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get all instance type availabilities for all locations
+*/
+readonly "InstanceAvailabilityControllerGetAllAvailabilities": <Config extends OperationConfig>(options: { readonly params?: typeof InstanceAvailabilityControllerGetAllAvailabilitiesParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof InstanceAvailabilityControllerGetAllAvailabilities200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get instance type availability
+*/
+readonly "InstanceAvailabilityControllerCheckAvailability": <Config extends OperationConfig>(instanceType: string, options: { readonly params?: typeof InstanceAvailabilityControllerCheckAvailabilityParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof InstanceAvailabilityControllerCheckAvailability200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get all cluster types availability
+*/
+readonly "ClusterAvailabilityControllerGetAllAvailabilities": <Config extends OperationConfig>(options: { readonly params?: typeof ClusterAvailabilityControllerGetAllAvailabilitiesParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ClusterAvailabilityControllerGetAllAvailabilities200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get specific cluster type availability
+*/
+readonly "ClusterAvailabilityControllerCheckAvailability": <Config extends OperationConfig>(clusterType: string, options: { readonly params?: typeof ClusterAvailabilityControllerCheckAvailabilityParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ClusterAvailabilityControllerCheckAvailability200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get SSH keys
+*/
+readonly "SshkeysControllerGetKeys": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof SshkeysControllerGetKeys200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Add new SSH key
+*/
+readonly "SshkeysControllerAddKey": <Config extends OperationConfig>(options: { readonly payload: typeof SshkeysControllerAddKeyRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Delete ssh keys
+*/
+readonly "SshkeysControllerDeleteKeys": <Config extends OperationConfig>(options: { readonly payload: typeof SshkeysControllerDeleteKeysRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get single SSH key by ID
+*/
+readonly "SshkeysControllerGetKey": <Config extends OperationConfig>(sshKeyId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof SshkeysControllerGetKey200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Delete single SSH key by ID
+*/
+readonly "SshkeysControllerDeleteKey": <Config extends OperationConfig>(sshKeyId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get SSH keys
+*/
+readonly "DeprecatedSshkeysControllerGetKeys": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof DeprecatedSshkeysControllerGetKeys200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Add new SSH key
+*/
+readonly "DeprecatedSshkeysControllerAddKey": <Config extends OperationConfig>(options: { readonly payload: typeof DeprecatedSshkeysControllerAddKeyRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Delete ssh keys
+*/
+readonly "DeprecatedSshkeysControllerDeleteKeys": <Config extends OperationConfig>(options: { readonly payload: typeof DeprecatedSshkeysControllerDeleteKeysRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get single SSH key by ID
+*/
+readonly "DeprecatedSshkeysControllerGetKey": <Config extends OperationConfig>(sshKeyId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof DeprecatedSshkeysControllerGetKey200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Delete single SSH key by ID
+*/
+readonly "DeprecatedSshkeysControllerDeleteKey": <Config extends OperationConfig>(sshKeyId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get startup scripts
+*/
+readonly "ScriptsControllerGetScripts": <Config extends OperationConfig>(options: { readonly params?: typeof ScriptsControllerGetScriptsParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ScriptsControllerGetScripts200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Add new startup script
+*/
+readonly "ScriptsControllerAddScript": <Config extends OperationConfig>(options: { readonly payload: typeof ScriptsControllerAddScriptRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Delete startup scripts
+*/
+readonly "ScriptsControllerDeleteScripts": <Config extends OperationConfig>(options: { readonly payload: typeof ScriptsControllerDeleteScriptsRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get single startup script by ID
+*/
+readonly "ScriptsControllerGetScript": <Config extends OperationConfig>(scriptId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ScriptsControllerGetScript200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Delete single startup script by ID
+*/
+readonly "ScriptsControllerDeleteKey": <Config extends OperationConfig>(scriptId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Returns a list of available locations
+*/
+readonly "LocationsControllerGetVolumeTypes": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof LocationsControllerGetVolumeTypes200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get long term periods
+*/
+readonly "LongTermControllerGetLongTermPeriodsDeprecated": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof LongTermControllerGetLongTermPeriodsDeprecated200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get long term periods for instances
+*/
+readonly "LongTermControllerGetLongTermPeriodsInstances": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof LongTermControllerGetLongTermPeriodsInstances200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get long term periods for clusters
+*/
+readonly "LongTermControllerGetLongTermPeriodsClusters": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof LongTermControllerGetLongTermPeriodsClusters200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get cluster types
+*/
+readonly "ClusterTypesControllerGetInstanceTypes": <Config extends OperationConfig>(options: { readonly params?: typeof ClusterTypesControllerGetInstanceTypesParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ClusterTypesControllerGetInstanceTypes200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get container types
+*/
+readonly "ContainerTypesControllerGetContainerTypes": <Config extends OperationConfig>(options: { readonly params?: typeof ContainerTypesControllerGetContainerTypesParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ContainerTypesControllerGetContainerTypes200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get managed inference endpoint prices
+*/
+readonly "ManagedEndpointsControllerGetPricing": <Config extends OperationConfig>(options: { readonly params?: typeof ManagedEndpointsControllerGetPricingParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ManagedEndpointsControllerGetPricing200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get container registry price
+*/
+readonly "ContainerRegistryControllerGetContainerRegistryPricing": <Config extends OperationConfig>(options: { readonly params?: typeof ContainerRegistryControllerGetContainerRegistryPricingParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ContainerRegistryControllerGetContainerRegistryPricing200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Returns this project’s live instance groups, oldest first.
+*/
+readonly "InstanceGroupsPublicControllerList": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof InstanceGroupsPublicControllerList200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Creates a project-scoped group with a name, description, location, instance type and template.
+*/
+readonly "InstanceGroupsPublicControllerCreate": <Config extends OperationConfig>(options: { readonly payload: typeof InstanceGroupsPublicControllerCreateRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof InstanceGroupsPublicControllerCreate201.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Get an instance group
+*/
+readonly "InstanceGroupsPublicControllerGet": <Config extends OperationConfig>(instanceGroupId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof InstanceGroupsPublicControllerGet200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Removes the group from caller-facing reads while retaining its historical row and allowing its name to be reused.
+*/
+readonly "InstanceGroupsPublicControllerRemove": <Config extends OperationConfig>(instanceGroupId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+* Name, description, and template SSH keys or startup script can change. Location, instance type, image and OS volume are immutable.
+*/
+readonly "InstanceGroupsPublicControllerUpdate": <Config extends OperationConfig>(instanceGroupId: string, options: { readonly payload: typeof InstanceGroupsPublicControllerUpdateRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof InstanceGroupsPublicControllerUpdate200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"400", undefined> | VerdaError<"409", undefined>>
+  /**
+* Fetch log lines from the replicas of a deployment.
+*/
+readonly "DeploymentLogsPublicApiControllerGetLogs": <Config extends OperationConfig>(deploymentName: string, options: { readonly params?: typeof DeploymentLogsPublicApiControllerGetLogsParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof DeploymentLogsPublicApiControllerGetLogs200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined> | VerdaError<"404", undefined>>
+  /**
+* Fetch log lines from the replicas of a job deployment.
+*/
+readonly "JobLogsPublicApiControllerGetLogs": <Config extends OperationConfig>(jobName: string, options: { readonly params?: typeof JobLogsPublicApiControllerGetLogsParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof JobLogsPublicApiControllerGetLogs200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined> | VerdaError<"404", undefined>>
+  /**
+* Get all job deployments
+*/
+readonly "ScaledJobPublicApiControllerGetList": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ScaledJobPublicApiControllerGetList200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Create new job
+*/
+readonly "ScaledJobPublicApiControllerCreateNewScaledJob": <Config extends OperationConfig>(options: { readonly payload: typeof ScaledJobPublicApiControllerCreateNewScaledJobRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof ScaledJobPublicApiControllerCreateNewScaledJob201.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get job deployment by name
+*/
+readonly "ScaledJobPublicApiControllerGetByName": <Config extends OperationConfig>(jobName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ScaledJobPublicApiControllerGetByName200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Delete job deployment
+*/
+readonly "ScaledJobPublicApiControllerDeleteByName": <Config extends OperationConfig>(jobName: string, options: { readonly params?: typeof ScaledJobPublicApiControllerDeleteByNameParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Update job deployment
+*/
+readonly "ScaledJobPublicApiControllerUpdateScaledJobByName": <Config extends OperationConfig>(jobName: string, options: { readonly payload: typeof ScaledJobPublicApiControllerUpdateScaledJobByNameRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof ScaledJobPublicApiControllerUpdateScaledJobByName200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get job deployment scaling options
+*/
+readonly "ScaledJobPublicApiControllerGetScalingOptionsByName": <Config extends OperationConfig>(jobName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ScaledJobPublicApiControllerGetScalingOptionsByName200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Purge job deployment queue
+*/
+readonly "ScaledJobPublicApiControllerPurgeQueue": <Config extends OperationConfig>(jobName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Pause job deployment
+*/
+readonly "ScaledJobPublicApiControllerPauseScaledJobByName": <Config extends OperationConfig>(jobName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Resume job deployment
+*/
+readonly "ScaledJobPublicApiControllerResumeScaledJobByName": <Config extends OperationConfig>(jobName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get job deployment status
+*/
+readonly "ScaledJobPublicApiControllerGetScaledJobStatusByName": <Config extends OperationConfig>(jobName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ScaledJobPublicApiControllerGetScaledJobStatusByName200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get all deployments
+*/
+readonly "PublicApiControllerGetDeploymentsList": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerGetDeploymentsList200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Create new deployment
+*/
+readonly "PublicApiControllerCreateNewDeployment": <Config extends OperationConfig>(options: { readonly payload: typeof PublicApiControllerCreateNewDeploymentRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerCreateNewDeployment201.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get deployment by name
+*/
+readonly "PublicApiControllerGetDeploymentByName": <Config extends OperationConfig>(deploymentName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerGetDeploymentByName200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Delete deployment
+*/
+readonly "PublicApiControllerDeleteDeploymentByName": <Config extends OperationConfig>(deploymentName: string, options: { readonly params?: typeof PublicApiControllerDeleteDeploymentByNameParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Update deployment
+*/
+readonly "PublicApiControllerUpdateDeploymentByName": <Config extends OperationConfig>(deploymentName: string, options: { readonly payload: typeof PublicApiControllerUpdateDeploymentByNameRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerUpdateDeploymentByName200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get deployment status
+*/
+readonly "PublicApiControllerGetReplicasStatusByName": <Config extends OperationConfig>(deploymentName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerGetReplicasStatusByName200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Restart deployment
+*/
+readonly "PublicApiControllerRestartDeploymentByName": <Config extends OperationConfig>(deploymentName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get deployment scaling options by deployment name
+*/
+readonly "PublicApiControllerGetDeploymentScalingOptionsByName": <Config extends OperationConfig>(deploymentName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerGetDeploymentScalingOptionsByName200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Update deployment scaling options
+*/
+readonly "PublicApiControllerUpdateDeploymentScalingOptionsByName": <Config extends OperationConfig>(deploymentName: string, options: { readonly payload: typeof PublicApiControllerUpdateDeploymentScalingOptionsByNameRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerUpdateDeploymentScalingOptionsByName200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get deployment replicas by deployment name
+*/
+readonly "PublicApiControllerGetDeploymentReplicasByName": <Config extends OperationConfig>(deploymentName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerGetDeploymentReplicasByName200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Purge deployment queue
+*/
+readonly "PublicApiControllerPurgeQueue": <Config extends OperationConfig>(deploymentName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Pause deployment
+*/
+readonly "PublicApiControllerPauseDeploymentByName": <Config extends OperationConfig>(deploymentName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Resume deployment
+*/
+readonly "PublicApiControllerResumeDeploymentByName": <Config extends OperationConfig>(deploymentName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get deployment environment variables
+*/
+readonly "PublicApiControllerGetDeploymentEnvironmentVariables": <Config extends OperationConfig>(deploymentName: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerGetDeploymentEnvironmentVariables200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Add environment variables to a container
+*/
+readonly "PublicApiControllerAddEnvironmentVariablesToContainer": <Config extends OperationConfig>(deploymentName: string, options: { readonly payload: typeof PublicApiControllerAddEnvironmentVariablesToContainerRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerAddEnvironmentVariablesToContainer200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Delete environment variables of a container
+*/
+readonly "PublicApiControllerDeleteEnvironmentVariablesOfContainer": <Config extends OperationConfig>(deploymentName: string, options: { readonly payload: typeof PublicApiControllerDeleteEnvironmentVariablesOfContainerRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerDeleteEnvironmentVariablesOfContainer200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Update environment variables of a container. The env vars must exist in order to update them
+*/
+readonly "PublicApiControllerUpdateEnvironmentVariablesOfContainer": <Config extends OperationConfig>(deploymentName: string, options: { readonly payload: typeof PublicApiControllerUpdateEnvironmentVariablesOfContainerRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerUpdateEnvironmentVariablesOfContainer200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get compute resource types and availability
+*/
+readonly "PublicApiControllerGetComputeAndAvailability": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerGetComputeAndAvailability200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get secrets
+*/
+readonly "PublicApiControllerGetSecrets": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerGetSecrets200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Create new secret
+*/
+readonly "PublicApiControllerAddSecret": <Config extends OperationConfig>(options: { readonly payload: typeof PublicApiControllerAddSecretRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Will error if the secret is used in a deployment
+*/
+readonly "PublicApiControllerDeleteSecret": <Config extends OperationConfig>(secretName: string, options: { readonly params?: typeof PublicApiControllerDeleteSecretParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* File secrets can be used as a secret mount storage
+*/
+readonly "PublicApiControllerGetFilesetSecrets": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerGetFilesetSecrets200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* File secrets can be used as a secret mount storage
+*/
+readonly "PublicApiControllerAddFilesetSecret": <Config extends OperationConfig>(options: { readonly payload: typeof PublicApiControllerAddFilesetSecretRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Will error if the secret is used in a deployment
+*/
+readonly "PublicApiControllerDeleteFilesetSecret": <Config extends OperationConfig>(secretName: string, options: { readonly params?: typeof PublicApiControllerDeleteFilesetSecretParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get all registry credentials
+*/
+readonly "PublicApiControllerGetRegistryCredentials": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof PublicApiControllerGetRegistryCredentials200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Add registry credentials
+*/
+readonly "PublicApiControllerAddRegistryCredentials": <Config extends OperationConfig>(options: { readonly payload: typeof PublicApiControllerAddRegistryCredentialsRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Delete registry credentials
+*/
+readonly "PublicApiControllerDeleteRegistryCredentials": <Config extends OperationConfig>(credentialsName: string, options: { readonly params?: typeof PublicApiControllerDeleteRegistryCredentialsParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* List container deployment templates
+*/
+readonly "ContainerDeploymentTemplatesPublicApiControllerListTemplates": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ContainerDeploymentTemplatesPublicApiControllerListTemplates200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Get a container deployment template
+*/
+readonly "ContainerDeploymentTemplatesPublicApiControllerGetTemplate": <Config extends OperationConfig>(templateId: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ContainerDeploymentTemplatesPublicApiControllerGetTemplate200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Deploy a container deployment template
+*/
+readonly "ContainerDeploymentTemplatesPublicApiControllerDeployTemplate": <Config extends OperationConfig>(templateId: string, options: { readonly payload: typeof ContainerDeploymentTemplatesPublicApiControllerDeployTemplateRequestJson.Encoded; readonly config?: Config | undefined }) => Effect.Effect<WithOptionalResponse<typeof ContainerDeploymentTemplatesPublicApiControllerDeployTemplate201.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"401", undefined>>
+  /**
+* Fetch deployment system logs.
+*/
+readonly "DeploymentSystemLogsPublicApiControllerGetLogs": <Config extends OperationConfig>(deploymentName: string, options: { readonly params?: typeof DeploymentSystemLogsPublicApiControllerGetLogsParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof DeploymentSystemLogsPublicApiControllerGetLogs200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"400", undefined> | VerdaError<"401", undefined> | VerdaError<"403", undefined> | VerdaError<"404", undefined>>
+  /**
+* Fetch job deployment system logs.
+*/
+readonly "JobSystemLogsPublicApiControllerGetLogs": <Config extends OperationConfig>(jobName: string, options: { readonly params?: typeof JobSystemLogsPublicApiControllerGetLogsParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof JobSystemLogsPublicApiControllerGetLogs200.Type, Config>, HttpClientError.HttpClientError | SchemaError | VerdaError<"400", undefined> | VerdaError<"401", undefined> | VerdaError<"403", undefined> | VerdaError<"404", undefined>>
+}
+
+export interface VerdaError<Tag extends string, E> {
+  readonly _tag: Tag
+  readonly request: HttpClientRequest.HttpClientRequest
+  readonly response: HttpClientResponse.HttpClientResponse
+  readonly cause: E
+}
+
+class VerdaErrorImpl extends Data.Error<{
+  _tag: string
+  cause: any
+  request: HttpClientRequest.HttpClientRequest
+  response: HttpClientResponse.HttpClientResponse
+}> {}
+
+export const VerdaError = <Tag extends string, E>(
+  tag: Tag,
+  cause: E,
+  response: HttpClientResponse.HttpClientResponse,
+): VerdaError<Tag, E> =>
+  new VerdaErrorImpl({
+    _tag: tag,
+    cause,
+    response,
+    request: response.request,
+  }) as any

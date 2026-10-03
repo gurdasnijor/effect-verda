@@ -1,0 +1,29 @@
+{
+  "name": "@gurdasnijor/effect-verda",
+  "version": "0.1.0",
+  "description": "Effect HTTP client for the Verda Cloud API",
+  "type": "module",
+  "license": "MIT",
+  "files": ["dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "generate": "openapigen --spec spec/verda.openapi.json --patch spec/patch.json --name Verda --format httpclient > src/generated.ts",
+    "build": "tsc -p tsconfig.json",
+    "check": "pnpm build"
+  },
+  "peerDependencies": {
+    "effect": "^4.0.0-rc.115",
+    "@effect/platform-node": "^4.0.0-rc.115"
+  },
+  "devDependencies": {
+    "@effect/openapi-generator": "4.0.0-rc.115",
+    "@effect/platform-node": "4.0.0-rc.115",
+    "effect": "4.0.0-rc.115",
+    "typescript": "5.9.3"
+  }
+}
