@@ -1007,6 +1007,16 @@ export type GetDeploymentStatusResponseDto = {
 export declare const GetDeploymentStatusResponseDto: Schema.StructWithRest<Schema.Struct<{
     readonly status: Schema.Literals<readonly ["initializing", "healthy", "degraded", "unhealthy", "paused", "quota_reached", "image_pulling", "updating", "terminating"]>;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
+export type UtilizationScalingTriggerPublicApiResponse = {
+    readonly "enabled": boolean;
+    readonly "threshold": number | null;
+} & {
+    readonly [x: string]: Schema.Json;
+};
+export declare const UtilizationScalingTriggerPublicApiResponse: Schema.StructWithRest<Schema.Struct<{
+    readonly enabled: Schema.Boolean;
+    readonly threshold: Schema.Union<readonly [Schema.Number, Schema.Null]>;
+}>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
 export type ReplicaInfo = {
     readonly "id": string;
     readonly "status": "unavailable" | "initializing" | "running" | "terminating" | "error" | "imagepulling";
@@ -2023,6 +2033,26 @@ export declare const PatchContainerPublicApiDto: Schema.StructWithRest<Schema.St
     readonly autoupdate: Schema.optionalKey<Schema.suspend<Schema.Codec<AutoupdateSettings, AutoupdateSettings, never, never>>>;
     readonly volume_mounts: Schema.optionalKey<Schema.$Array<Schema.Union<readonly [Schema.suspend<Schema.Codec<ScratchVolumeMountDto, ScratchVolumeMountDto, never, never>>, Schema.suspend<Schema.Codec<SecretVolumeMountDto, SecretVolumeMountDto, never, never>>, Schema.suspend<Schema.Codec<SharedVolumeMountDto, SharedVolumeMountDto, never, never>>, Schema.suspend<Schema.Codec<MemoryVolumeMountDto, MemoryVolumeMountDto, never, never>>]>>>;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
+export type ScalingTriggersPublicApiResponse = {
+    readonly "queue_load": QueueLoadScalingTrigger;
+    readonly "cpu_utilization"?: UtilizationScalingTriggerPublicApiResponse;
+    readonly "gpu_utilization"?: UtilizationScalingTriggerPublicApiResponse;
+} & {
+    readonly [x: string]: Schema.Json;
+};
+export declare const ScalingTriggersPublicApiResponse: Schema.StructWithRest<Schema.Struct<{
+    readonly queue_load: Schema.StructWithRest<Schema.Struct<{
+        readonly threshold: Schema.Number;
+    }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
+    readonly cpu_utilization: Schema.optionalKey<Schema.StructWithRest<Schema.Struct<{
+        readonly enabled: Schema.Boolean;
+        readonly threshold: Schema.Union<readonly [Schema.Number, Schema.Null]>;
+    }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>>;
+    readonly gpu_utilization: Schema.optionalKey<Schema.StructWithRest<Schema.Struct<{
+        readonly enabled: Schema.Boolean;
+        readonly threshold: Schema.Union<readonly [Schema.Number, Schema.Null]>;
+    }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>>;
+}>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
 export type ReplicasPublicApiDto = {
     readonly "list": ReadonlyArray<ReplicaInfo>;
 } & {
@@ -2338,26 +2368,6 @@ export declare const CreateScalingOptionsPublicApiDto: Schema.StructWithRest<Sch
     readonly concurrent_requests_per_replica: Schema.Number;
     readonly scaling_triggers: Schema.suspend<Schema.Codec<ScalingTriggers, ScalingTriggers, never, never>>;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
-export type ScalingOptionsPublicApiDto = {
-    readonly "min_replica_count": number;
-    readonly "max_replica_count": number;
-    readonly "scale_down_policy": ScalingPolicy;
-    readonly "scale_up_policy": ScalingPolicy;
-    readonly "queue_message_ttl_seconds": number;
-    readonly "concurrent_requests_per_replica": number;
-    readonly "scaling_triggers": ScalingTriggers;
-} & {
-    readonly [x: string]: Schema.Json;
-};
-export declare const ScalingOptionsPublicApiDto: Schema.StructWithRest<Schema.Struct<{
-    readonly min_replica_count: Schema.Number;
-    readonly max_replica_count: Schema.Number;
-    readonly scale_down_policy: Schema.suspend<Schema.Codec<ScalingPolicy, ScalingPolicy, never, never>>;
-    readonly scale_up_policy: Schema.suspend<Schema.Codec<ScalingPolicy, ScalingPolicy, never, never>>;
-    readonly queue_message_ttl_seconds: Schema.Number;
-    readonly concurrent_requests_per_replica: Schema.Number;
-    readonly scaling_triggers: Schema.suspend<Schema.Codec<ScalingTriggers, ScalingTriggers, never, never>>;
-}>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
 export type PatchScalingOptionsPublicApiDto = {
     readonly "min_replica_count"?: number;
     readonly "max_replica_count"?: number;
@@ -2405,6 +2415,26 @@ export declare const PatchDeploymentPublicApiDto: Schema.StructWithRest<Schema.S
     }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>>>;
     readonly compute: Schema.optionalKey<Schema.suspend<Schema.Codec<ComputeResource, ComputeResource, never, never>>>;
     readonly is_spot: Schema.optionalKey<Schema.Boolean>;
+}>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
+export type ScalingOptionsPublicApiDto = {
+    readonly "min_replica_count": number;
+    readonly "max_replica_count": number;
+    readonly "scale_down_policy": ScalingPolicy;
+    readonly "scale_up_policy": ScalingPolicy;
+    readonly "queue_message_ttl_seconds": number;
+    readonly "concurrent_requests_per_replica": number;
+    readonly "scaling_triggers": ScalingTriggersPublicApiResponse;
+} & {
+    readonly [x: string]: Schema.Json;
+};
+export declare const ScalingOptionsPublicApiDto: Schema.StructWithRest<Schema.Struct<{
+    readonly min_replica_count: Schema.Number;
+    readonly max_replica_count: Schema.Number;
+    readonly scale_down_policy: Schema.suspend<Schema.Codec<ScalingPolicy, ScalingPolicy, never, never>>;
+    readonly scale_up_policy: Schema.suspend<Schema.Codec<ScalingPolicy, ScalingPolicy, never, never>>;
+    readonly queue_message_ttl_seconds: Schema.Number;
+    readonly concurrent_requests_per_replica: Schema.Number;
+    readonly scaling_triggers: Schema.suspend<Schema.Codec<ScalingTriggersPublicApiResponse, ScalingTriggersPublicApiResponse, never, never>>;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
 export type CreateDeploymentPublicApiDto = {
     readonly "name": string;
@@ -4019,7 +4049,7 @@ export declare const PublicApiControllerGetDeploymentScalingOptionsByName200: Sc
     readonly scale_up_policy: Schema.suspend<Schema.Codec<ScalingPolicy, ScalingPolicy, never, never>>;
     readonly queue_message_ttl_seconds: Schema.Number;
     readonly concurrent_requests_per_replica: Schema.Number;
-    readonly scaling_triggers: Schema.suspend<Schema.Codec<ScalingTriggers, ScalingTriggers, never, never>>;
+    readonly scaling_triggers: Schema.suspend<Schema.Codec<ScalingTriggersPublicApiResponse, ScalingTriggersPublicApiResponse, never, never>>;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
 export type PublicApiControllerUpdateDeploymentScalingOptionsByNameRequestJson = PatchScalingOptionsPublicApiDto;
 export declare const PublicApiControllerUpdateDeploymentScalingOptionsByNameRequestJson: Schema.StructWithRest<Schema.Struct<{
@@ -4039,7 +4069,7 @@ export declare const PublicApiControllerUpdateDeploymentScalingOptionsByName200:
     readonly scale_up_policy: Schema.suspend<Schema.Codec<ScalingPolicy, ScalingPolicy, never, never>>;
     readonly queue_message_ttl_seconds: Schema.Number;
     readonly concurrent_requests_per_replica: Schema.Number;
-    readonly scaling_triggers: Schema.suspend<Schema.Codec<ScalingTriggers, ScalingTriggers, never, never>>;
+    readonly scaling_triggers: Schema.suspend<Schema.Codec<ScalingTriggersPublicApiResponse, ScalingTriggersPublicApiResponse, never, never>>;
 }>, readonly [Schema.$Record<Schema.String, Schema.Codec<Schema.Json, Schema.Json, never, never>>]>;
 export type PublicApiControllerGetDeploymentReplicasByName200 = ReplicasPublicApiDto;
 export declare const PublicApiControllerGetDeploymentReplicasByName200: Schema.StructWithRest<Schema.Struct<{

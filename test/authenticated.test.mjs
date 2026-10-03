@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/unstable/http/HttpClient";
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
-import { makeAuthenticated } from "../dist/index.js";
+import { makeAuthenticated, UtilizationScalingTrigger } from "../dist/index.js";
 
 test("renews credentials through the generated OAuth operation and reuses the token", async () => {
   const requests = [];
@@ -68,4 +70,40 @@ test("decodes null entrypoint overrides returned by a deployment GET", async () 
 
   const deployment = await Effect.runPromise(client.PublicApiControllerGetDeploymentByName("model", undefined));
   assert.equal(deployment.containers[0].entrypoint_overrides?.entrypoint, null);
+});
+
+test("decodes disabled utilization triggers with null thresholds in scaling responses", async () => {
+  const httpClient = HttpClient.make((request, url) => Effect.sync(() => HttpClientResponse.fromWeb(
+    request,
+    Response.json(url.pathname === "/v1/oauth2/token"
+      ? {
+        access_token: "test-token",
+        token_type: "Bearer",
+        expires_in: 3600,
+        refresh_token: "test-refresh",
+        scope: "cloud-api-v1",
+      }
+      : {
+        min_replica_count: 0,
+        max_replica_count: 1,
+        queue_message_ttl_seconds: 14400,
+        concurrent_requests_per_replica: 1,
+        scale_down_policy: { delay_seconds: 300 },
+        scale_up_policy: { delay_seconds: 0 },
+        scaling_triggers: {
+          queue_load: { threshold: 1 },
+          cpu_utilization: { enabled: false, threshold: null },
+          gpu_utilization: { enabled: false, threshold: null },
+        },
+      }),
+  )));
+  const client = await Effect.runPromise(makeAuthenticated(httpClient, {
+    clientId: "test-id",
+    clientSecret: "test-secret",
+  }));
+
+  const scaling = await Effect.runPromise(client.PublicApiControllerGetDeploymentScalingOptionsByName("model", undefined));
+  assert.equal(scaling.scaling_triggers.cpu_utilization?.threshold, null);
+  assert.equal(scaling.scaling_triggers.gpu_utilization?.threshold, null);
+  assert.equal(Result.isFailure(Schema.decodeUnknownResult(UtilizationScalingTrigger)({ enabled: false, threshold: null })), true);
 });
