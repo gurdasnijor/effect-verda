@@ -3,8 +3,8 @@ import { test } from "node:test";
 import * as Effect from "effect/Effect";
 import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
-import * as HttpClient from "effect/unstable/http/HttpClient";
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
+import * as HttpClient from "effect/http/HttpClient";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { makeAuthenticated, UtilizationScalingTrigger } from "../dist/index.js";
 
 test("renews credentials through the generated OAuth operation and reuses the token", async () => {
